@@ -17,6 +17,8 @@
 #include <memory>
 #include <sys/types.h>
 
+// !!! 
+#include <iostream>
 class mmu_t;
 class remote_bitbang_t;
 class socketif_t;
@@ -48,8 +50,8 @@ public:
   void prerun();
   // void htif_start();
   bool communication_available();
-  void single_step_without_communication();
-  void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
+  // void single_step_without_communication();
+  // void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
 
   void set_debug(bool value);
   void set_histogram(bool value);
@@ -68,7 +70,7 @@ public:
   const char* get_dts() { return dts.c_str(); }
   processor_t* get_core(size_t i) { return procs.at(i); }
   abstract_interrupt_controller_t* get_intctrl() const { assert(plic.get()); return plic.get(); }
-  virtual const cfg_t &get_cfg() const override { return *cfg; }
+  virtual const cfg_t &get_cfg() const override { std::cout << "get_cfg: adress of cfg:" << cfg << std::endl;return *cfg; }
 
   virtual const std::map<size_t, processor_t*>& get_harts() const override { return harts; }
 
@@ -154,10 +156,10 @@ private:
   // htif
   virtual void reset() override;
   virtual void idle() override;
-#ifdef COSIMIF
-  virtual void idle_single_step() override; // ekleme
-#warning "idle_single_step() is added to sim_t"
-#endif
+// #ifdef COSIMIF
+//   virtual void idle_single_step() override; // ekleme
+// #warning "idle_single_step() is added to sim_t"
+// #endif
   virtual void read_chunk(addr_t taddr, size_t len, void* dst) override;
   virtual void write_chunk(addr_t taddr, size_t len, const void* src) override;
   virtual size_t chunk_align() override { return 8; }

@@ -3,7 +3,7 @@
 
 void init();
 
-void step();
+// void step();
 
 // /// @brief for key and value arrays: packed dimension size: dim0; num entries: dim1; entry size in packets: dim2
 // /// @param key_array the keys of the unordered_map is written to this array

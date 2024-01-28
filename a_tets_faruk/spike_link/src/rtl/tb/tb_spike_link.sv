@@ -27,13 +27,13 @@ module tb_spike_link;
   // !!! daha sonra bunu daha kullanilabilir hale getirmek icin bu sekile donust
   // import "DPI-C" function int init(input int argc, input string argv[]);
 
-  import "DPI-C" function void step();
+  // import "DPI-C" function void step();
 
-  import "DPI-C" function void get_last_commit(
-    output logic [KEY_WIDTH-1:0]   key_array  [][],
-    output logic [VALUE_WIDTH-1:0] value_array[][],
-    output int num_elements_inserted
-  );
+  // import "DPI-C" function void get_last_commit(
+  //   output logic [KEY_WIDTH-1:0]   key_array  [][],
+  //   output logic [VALUE_WIDTH-1:0] value_array[][],
+  //   output int num_elements_inserted
+  // );
 
   reg                     clk_i;
   reg                     rst_ni;
@@ -79,29 +79,29 @@ module tb_spike_link;
     init();
     /* verilator lint_on IGNOREDRETURN */
 
-    for (int ii = 0;ii < 5; ii = ii + 1) begin: simulation_loop
-      #CLK_PERIOD;
-      verilog_side_data.delete();
-      step();
-      get_last_commit(
-        key_array_from_c_side,
-        value_array_from_c_side,
-        num_elements_inserted_from_c_side
-      );
-      if (last_we1_o) begin
-        verilog_side_data[last_wa1_o] = last_wd1_o;
-      end
-      if (last_we2_o) begin
-        verilog_side_data[last_wa2_o] = last_wd2_o;
-      end
+    // for (int ii = 0;ii < 5; ii = ii + 1) begin: simulation_loop
+    //   #CLK_PERIOD;
+    //   verilog_side_data.delete();
+    //   step();
+    //   get_last_commit(
+    //     key_array_from_c_side,
+    //     value_array_from_c_side,
+    //     num_elements_inserted_from_c_side
+    //   );
+    //   if (last_we1_o) begin
+    //     verilog_side_data[last_wa1_o] = last_wd1_o;
+    //   end
+    //   if (last_we2_o) begin
+    //     verilog_side_data[last_wa2_o] = last_wd2_o;
+    //   end
 
-      compare_single_step(
-        key_array_from_c_side,
-        value_array_from_c_side,
-        num_elements_inserted_from_c_side,
-        verilog_side_data
-      );
-    end
+    //   compare_single_step(
+    //     key_array_from_c_side,
+    //     value_array_from_c_side,
+    //     num_elements_inserted_from_c_side,
+    //     verilog_side_data
+    //   );
+    // end
     $finish;
   end
   

@@ -30,8 +30,8 @@ class htif_t : public chunked_memif_t
 
   // ekleme
   bool communication_available();
-  void single_step_without_communication();
-  void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
+  // void single_step_without_communication();
+  // void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
   
   bool done();
   int exit_code();
@@ -70,10 +70,10 @@ class htif_t : public chunked_memif_t
   virtual std::map<std::string, uint64_t> load_payload(const std::string& payload, reg_t* entry);
   virtual void load_program();
   virtual void idle() { }
-#ifdef COSIMIF
-  virtual void idle_single_step() {std::cout << "htif_t::idle_single_step"<<std::endl;} // !!! ekleme
-#warning htif_t::idle_single_step() is addded
-#endif
+// #ifdef COSIMIF
+//   virtual void idle_single_step() {std::cout << "htif_t::idle_single_step"<<std::endl;} // !!! ekleme
+// #warning htif_t::idle_single_step() is addded
+// #endif
   
 
   const std::vector<std::string>& host_args() { return hargs; }

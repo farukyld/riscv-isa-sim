@@ -50,39 +50,39 @@ void sim_t::prerun()
 //   htif_t::start();
 // }
 
-void sim_t::idle_single_step(){
-  std::cout << "sim_t::idle_single_step" << std::endl;
-  if (done())
-    return;
+// void sim_t::idle_single_step(){
+//   std::cout << "sim_t::idle_single_step" << std::endl;
+//   if (done())
+//     return;
 
-  // once cosim_ctrlc_pressed kismini duzeltmem gerekiyor.
-  if (debug /*|| ctrlc_pressed*/)
-    interactive();
-  else{
-    step(1);
-  }
+//   // once cosim_ctrlc_pressed kismini duzeltmem gerekiyor.
+//   if (debug /*|| ctrlc_pressed*/)
+//     interactive();
+//   else{
+//     step(1);
+//   }
 
-  if (remote_bitbang)
-    remote_bitbang->tick();
-  // polimorfizm hatasi icin
-  // std::cout << "sim_t::idle_single_step" << std::endl;
-}
+//   if (remote_bitbang)
+//     remote_bitbang->tick();
+//   // polimorfizm hatasi icin
+//   // std::cout << "sim_t::idle_single_step" << std::endl;
+// }
 
 bool sim_t::communication_available()
 {
   return htif_t::communication_available();
 }
 
-void sim_t::single_step_without_communication()
-{
-  std::cout << "sim_t::single_step_without_communication. object at: " << this << std::endl;
-  htif_t::single_step_without_communication();
-}
+// void sim_t::single_step_without_communication()
+// {
+//   std::cout << "sim_t::single_step_without_communication. object at: " << this << std::endl;
+//   htif_t::single_step_without_communication();
+// }
 
-void sim_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback)
-{
-  htif_t::single_step_with_communication(fromhost_queue, fromhost_callback);
-}
+// void sim_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback)
+// {
+//   htif_t::single_step_with_communication(fromhost_queue, fromhost_callback);
+// }
 
 
 

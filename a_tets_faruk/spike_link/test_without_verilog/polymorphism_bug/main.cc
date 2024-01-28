@@ -3,13 +3,13 @@
 #include "htif.h"
 
 
-void htif_t::single_step_without_communication(){
-  // std::cout << "htif_t::use_idle calling idle" << std::endl;
-  // idle();
+// void htif_t::single_step_without_communication(){
+//   // std::cout << "htif_t::use_idle calling idle" << std::endl;
+//   // idle();
 
-  std::cout << "pm_bug/htif_t::single_step_without_communication calling idle_single_step" << std::endl;
-  idle_single_step();
-}
+//   std::cout << "pm_bug/htif_t::single_step_without_communication calling idle_single_step" << std::endl;
+//   // idle_single_step();
+// }
 
 class expose_t : public htif_t{
   public: 
@@ -19,7 +19,7 @@ class expose_t : public htif_t{
     expose_t() : htif_t() {}
   
   private:
-    virtual void idle_single_step() override; // !!! ekleme
+    // virtual void idle_single_step() override; // !!! ekleme
     virtual void idle() override; // override etmezsek htif_t::idle W olarak yer aliyor.
     
     
@@ -35,16 +35,16 @@ void expose_t::single_step_without_communication(){ //boyle tanimlayince T oluyo
   std::cout<<"expose_t::single_step_without_communication:";
   std::cout << " object at "<<this<<" of type expose_t.\n"
   " calling htif_t::single_step_without_communication" << std::endl;
-  htif_t::single_step_without_communication();
+  // htif_t::single_step_without_communication();
 }
 
 void expose_t::idle(){
   std::cout << "expose_t::idle" << std::endl;
 }
 
-void expose_t::idle_single_step(){
-  std::cout << "expose_t::idle_single_step" << std::endl;
-}
+// void expose_t::idle_single_step(){
+//   std::cout << "expose_t::idle_single_step" << std::endl;
+// }
 
 std::function <void()> use_idle_callback;
 expose_t* ex;
