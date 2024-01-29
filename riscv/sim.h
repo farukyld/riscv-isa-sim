@@ -47,7 +47,7 @@ public:
   // !!! run'un implementasyonuna bak.
   void prerun();
   // void htif_start();
-  bool communication_available();
+  // bool communication_available();
   void single_step_without_communication();
   void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
 

@@ -64,7 +64,7 @@ void init()
   // !!! yani fromhost_callback, fromhost_queue'ye
   // reg_t turunden bir seyler push'lamaya yariyor
 
-  if (simulation_object->communication_available())
+  if (((htif_t*)simulation_object)->communication_available())
   {
     printf("communication_available() is true\n");
     step_callback = std::bind(&sim_t::single_step_with_communication, simulation_object, &fromhost_queue, fromhost_callback);

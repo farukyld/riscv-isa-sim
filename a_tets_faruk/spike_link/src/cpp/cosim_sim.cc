@@ -68,10 +68,10 @@ void sim_t::prerun()
 //   // std::cout << "sim_t::idle_single_step" << std::endl;
 // }
 
-bool sim_t::communication_available()
-{
-  return htif_t::communication_available();
-}
+// bool sim_t::communication_available()
+// {
+//   return htif_t::communication_available();
+// }
 
 void sim_t::single_step_without_communication()
 {
