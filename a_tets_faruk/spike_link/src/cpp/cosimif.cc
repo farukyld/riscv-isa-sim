@@ -17,8 +17,8 @@
 #define DPI_WIDTH 32
 #endif
 
+cosim_t *cosim_ptr;
 sim_t *simulation_object;
-
 std::function<void()> step_callback;
 
 // !!! bu iki variable her ne kadar init'den baska bir yerde kullanilmiyor gibi gozukse de
@@ -33,7 +33,8 @@ void init()
 {
   auto argc_argv = read_args_from_file("/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/log/args.txt");
 
-  simulation_object = create_sim_with_args(argc_argv->argc, argc_argv->argv);
+  cosim_ptr = create_sim_with_args(argc_argv->argc, argc_argv->argv);
+  simulation_object = (sim_t *)cosim_ptr;
   std::cout <<__FILE__ <<":" <<__LINE__<< " sim.cfg.startpc.hasval: " << simulation_object->get_cfg().start_pc.has_value() << std::endl;
   std::cout << "simulation object created at: " << simulation_object << std::endl;
   

@@ -637,16 +637,16 @@ cosim_t *create_sim_with_args(int argc, char **argv)
   // printf("****cosim_create found pc in args: %s\n", s);
   std::cout <<__FILE__<<":"<<__LINE__<< "cfg start_pc has value: " << cfg.start_pc.has_value() <<std::endl;
   
-  cosim_t *simulation_object = new cosim_t(&cfg, halted,
+  cosim_t *cosim_ptr = new cosim_t(&cfg, halted,
                                      mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
                                      socket,
                                      cmd_file);
                                      
+  sim_t *simulation_object = (sim_t *)cosim_ptr;
   std::cout << __FILE__<<":"<<__LINE__<< "object at:" << simulation_object << 
   " sim.cfg.startpc.hasval: " << simulation_object->get_cfg().start_pc.has_value() << std::endl;
 
   std::cout <<__FILE__<<":"<<__LINE__<< "cfg start_pc has value: " << cfg.start_pc.has_value() <<std::endl;
-  
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *)NULL);
   std::unique_ptr<jtag_dtm_t> jtag_dtm(
       new jtag_dtm_t(&(simulation_object->debug_module), dmi_rti));
@@ -688,5 +688,5 @@ cosim_t *create_sim_with_args(int argc, char **argv)
   simulation_object->configure_log(log, log_commits);
   simulation_object->set_histogram(histogram);
 
-  return simulation_object;
+  return cosim_ptr;
 }
