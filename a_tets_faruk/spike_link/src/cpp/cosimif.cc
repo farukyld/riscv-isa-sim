@@ -67,12 +67,13 @@ void init()
   if (((htif_t*)simulation_object)->communication_available())
   {
     printf("communication_available() is true\n");
-    step_callback = std::bind(&sim_t::single_step_with_communication, simulation_object, &fromhost_queue, fromhost_callback);
+    // htif_t pointer'ine type-cast yapmaya gerek yoktu muhtemelen ama acik acik gostermek istedim
+    step_callback = std::bind(&htif_t::single_step_with_communication, (htif_t*)simulation_object, &fromhost_queue, fromhost_callback);
   }
   else
   {
     printf("communication_available() is false\n");
-    step_callback = std::bind(&sim_t::single_step_without_communication, simulation_object);
+    step_callback = std::bind(&htif_t::single_step_without_communication, (htif_t*)simulation_object);
   }
 }
 
