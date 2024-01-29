@@ -24,7 +24,7 @@
 
 #define FORCE_LOG_COMMITS
 #define USE_DUMP_DTS_FLAG
-// #define DISABLE_INTERACTIVE_MODE
+#define DISABLE_INTERACTIVE_MODE
 
 static void help(int exit_code = 1)
 {
@@ -639,10 +639,10 @@ sim_t *create_sim_with_args(int argc, char **argv)
   std::cout <<__FILE__<<":"<<__LINE__<< " cfg start_pc has value: " << cfg.start_pc.has_value() <<std::endl;
   #endif
   sim_t *simulation_object = new sim_t(&cfg, halted,
-                                     mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
-                                     socket,
-                                     cmd_file);
-                                     
+                                      mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
+                                      socket,
+                                      cmd_file);
+                                      
   #if DEBUG_LEVEL >= DEBUG_WARN
   std::cout << __FILE__<<":"<<__LINE__<< " object at:" << simulation_object << 
   " sim.cfg.startpc.hasval: " << simulation_object->get_cfg().start_pc.has_value() << std::endl;
