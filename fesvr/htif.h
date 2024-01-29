@@ -11,9 +11,10 @@
 #include <map>
 #include <vector>
 #include <assert.h>
-#ifdef COSIMIF
+#include "/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/src/cpp/debug_header.h"
+#if DEBUG_LEVEL > DEBUG_NONE
 #include <iostream>
-#endif
+#endif 
 
 class htif_t : public chunked_memif_t
 {
@@ -70,10 +71,14 @@ class htif_t : public chunked_memif_t
   virtual std::map<std::string, uint64_t> load_payload(const std::string& payload, reg_t* entry);
   virtual void load_program();
   virtual void idle() { }
-#ifdef COSIMIF
-  virtual void idle_single_step() {std::cout << "htif_t::idle_single_step"<<std::endl;} // !!! ekleme
-#warning htif_t::idle_single_step() is addded
-#endif
+// #ifdef COSIMIF
+  virtual void idle_single_step() {
+    #if DEBUG_LEVEL >= DEBUG_WARN
+    std::cout << "htif_t::idle_single_step"<<std::endl;
+    #endif
+    } // !!! ekleme
+// #warning htif_t::idle_single_step() is addded
+// #endif
   
 
   const std::vector<std::string>& host_args() { return hargs; }
