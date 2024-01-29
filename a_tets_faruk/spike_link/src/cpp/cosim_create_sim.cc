@@ -1,9 +1,9 @@
 // See LICENSE for license details.
-#define COSIMIF
 #include "cosim_create_sim.h"
 #include "debug_header.h"
 #include "config.h"
 #include "cfg.h"
+#define COSIMIF
 #include "sim.h"
 #include "mmu.h"
 #include "arith.h"
@@ -353,7 +353,7 @@ static std::vector<size_t> parse_hartids(const char *s)
 
 cfg_t *cfg_ptr;
 
-sim_t *create_sim_with_args(int argc, char **argv)
+cosim_t *create_sim_with_args(int argc, char **argv)
 {
   // !!! korleme yontem
   bool debug = false;
@@ -637,7 +637,7 @@ sim_t *create_sim_with_args(int argc, char **argv)
   // printf("****cosim_create found pc in args: %s\n", s);
   std::cout <<__FILE__<<":"<<__LINE__<< "cfg start_pc has value: " << cfg.start_pc.has_value() <<std::endl;
   
-  sim_t *simulation_object = new sim_t(&cfg, halted,
+  cosim_t *simulation_object = new cosim_t(&cfg, halted,
                                      mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
                                      socket,
                                      cmd_file);

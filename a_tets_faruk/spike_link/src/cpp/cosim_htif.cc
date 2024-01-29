@@ -1,7 +1,7 @@
 // See LICENSE for license details.
 
-#define COSIMIF
 #include "config.h"
+#define COSIMIF
 #include "htif.h"
 #include "rfb.h"
 #include "elfloader.h"

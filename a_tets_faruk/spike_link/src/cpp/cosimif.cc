@@ -1,4 +1,3 @@
-#define COSIMIF
 #include "cosim_create_sim.h"
 #ifndef DONT_USE_VERILATOR
 #include "../../obj_dir_tb_spike_link/tb_spike_link__Dpi.h"

@@ -1,6 +1,7 @@
-#define COSIMIF
 #include "config.h"
+#define COSIMIF
 #include "sim.h"
+#include "cosim.h"
 #include "mmu.h"
 #include "dts.h"
 #include "remote_bitbang.h"
@@ -50,20 +51,35 @@ void sim_t::prerun()
 //   htif_t::start();
 // }
 
-void sim_t::idle_single_step(){
-  std::cout << "sim_t::idle_single_step" << std::endl;
-  if (done())
+cosim_t::cosim_t(const cfg_t *cfg, bool halted,
+                  std::vector<std::pair<reg_t, abstract_mem_t *>> mems,
+                  std::vector<const device_factory_t *> plugin_device_factories,
+                  const std::vector<std::string> &args,
+                  const debug_module_config_t &dm_config, const char *log_path,
+                  bool dtb_enabled, const char *dtb_file,
+                  bool socket_enabled,
+                  FILE *cmd_file)
+    : sim_t(cfg, halted, mems, plugin_device_factories, args, dm_config, log_path, 
+            dtb_enabled, dtb_file, socket_enabled, cmd_file)
+{
+}
+
+void cosim_t::idle_single_step()
+{
+  std::cout << "cosim_t::idle_single_step" << std::endl;
+  if (sim_t::done())
     return;
 
   // once cosim_ctrlc_pressed kismini duzeltmem gerekiyor.
-  if (debug /*|| ctrlc_pressed*/)
-    interactive();
-  else{
-    step(1);
+  if (sim_t::debug /*|| ctrlc_pressed*/)
+    sim_t::interactive();
+  else
+  {
+    sim_t::step(1);
   }
 
-  if (remote_bitbang)
-    remote_bitbang->tick();
+  if (sim_t::remote_bitbang)
+    sim_t::remote_bitbang->tick();
   // polimorfizm hatasi icin
   // std::cout << "sim_t::idle_single_step" << std::endl;
 }
@@ -83,6 +99,3 @@ void sim_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, st
 {
   htif_t::single_step_with_communication(fromhost_queue, fromhost_callback);
 }
-
-
-
