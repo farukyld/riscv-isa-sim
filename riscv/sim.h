@@ -98,6 +98,7 @@ private:
 
   processor_t* get_core(const std::string& i);
   void step(size_t n); // step through simulation
+  void step_without_print(size_t n);
   size_t current_step;
   size_t current_proc;
   bool debug;

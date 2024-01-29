@@ -352,3 +352,176 @@ void processor_t::step(size_t n)
     n -= instret;
   }
 }
+
+static inline reg_t execute_insn_logged_without_print(processor_t* p, reg_t pc, insn_fetch_t fetch)
+{
+  if (p->get_log_commits_enabled()) {
+    commit_log_reset(p);
+    commit_log_stash_privilege(p);
+  }
+
+  reg_t npc;
+
+  try {
+    npc = fetch.func(p, fetch.insn, pc);
+  } catch(mem_trap_t& t) {
+      //handle segfault in midlle of vector load/store
+      if (p->get_log_commits_enabled()) {
+        for (auto item : p->get_state()->log_reg_write) {
+          if ((item.first & 3) == 3) {
+            break;
+          }
+        }
+      }
+      throw;
+  } catch(...) {
+    throw;
+  }
+  p->update_histogram(pc);
+
+  return npc;
+}
+
+
+// fetch/decode/execute loop
+void processor_t::step_without_print(size_t n)
+{
+  if (!state.debug_mode) {
+    if (halt_request == HR_REGULAR) {
+      enter_debug_mode(DCSR_CAUSE_DEBUGINT);
+    } else if (halt_request == HR_GROUP) {
+      enter_debug_mode(DCSR_CAUSE_GROUP);
+    } // !!!The halt bit in DCSR is deprecated.
+    else if (state.dcsr->halt) {
+      enter_debug_mode(DCSR_CAUSE_HALT);
+    }
+  }
+
+  while (n > 0) {
+    size_t instret = 0;
+    reg_t pc = state.pc;
+    mmu_t* _mmu = mmu;
+    state.prv_changed = false;
+    state.v_changed = false;
+
+    #define advance_pc() \
+      if (unlikely(invalid_pc(pc))) { \
+        switch (pc) { \
+          case PC_SERIALIZE_BEFORE: state.serialized = true; break; \
+          case PC_SERIALIZE_AFTER: ++instret; break; \
+          default: abort(); \
+        } \
+        pc = state.pc; \
+        break; \
+      } else { \
+        state.pc = pc; \
+        instret++; \
+      }
+
+    try
+    {
+      take_pending_interrupt();
+
+      if (unlikely(slow_path()))
+      {
+        // Main simulation loop, slow path.
+        while (instret < n)
+        {
+          if (unlikely(!state.serialized && state.single_step == state.STEP_STEPPED)) {
+            state.single_step = state.STEP_NONE;
+            if (!state.debug_mode) {
+              enter_debug_mode(DCSR_CAUSE_STEP);
+              // enter_debug_mode changed state.pc, so we can't just continue.
+              break;
+            }
+          }
+
+          if (unlikely(state.single_step == state.STEP_STEPPING)) {
+            state.single_step = state.STEP_STEPPED;
+          }
+
+          if (!state.serialized && check_triggers_icount) {
+            auto match = TM.detect_icount_match();
+            if (match.has_value()) {
+              assert(match->timing == triggers::TIMING_BEFORE);
+              throw triggers::matched_t((triggers::operation_t)0, 0, match->action, state.v);
+            }
+          }
+
+          // debug mode wfis must nop
+          if (unlikely(in_wfi && !state.debug_mode)) {
+            throw wait_for_interrupt_t();
+          }
+
+          in_wfi = false;
+          insn_fetch_t fetch = mmu->load_insn(pc);
+          if (debug && !state.serialized)
+            disasm(fetch.insn);
+          pc = execute_insn_logged_without_print(this, pc, fetch);
+          advance_pc();
+        }
+      }
+      else while (instret < n)
+      {
+        // Main simulation loop, fast path.
+        for (auto ic_entry = _mmu->access_icache(pc); ; ) {
+          auto fetch = ic_entry->data;
+          pc = execute_insn_fast(this, pc, fetch);
+          ic_entry = ic_entry->next;
+          if (unlikely(ic_entry->tag != pc))
+            break;
+          if (unlikely(instret + 1 == n))
+            break;
+          instret++;
+          state.pc = pc;
+        }
+
+        advance_pc();
+      }
+    }
+    catch(trap_t& t)
+    {
+      take_trap(t, pc);
+      n = instret;
+
+      // Trigger action takes priority over single step
+      auto match = TM.detect_trap_match(t);
+      if (match.has_value())
+        take_trigger_action(match->action, 0, state.pc, 0);
+      else if (unlikely(state.single_step == state.STEP_STEPPED)) {
+        state.single_step = state.STEP_NONE;
+        enter_debug_mode(DCSR_CAUSE_STEP);
+      }
+    }
+    catch (triggers::matched_t& t)
+    {
+      if (mmu->matched_trigger) {
+        delete mmu->matched_trigger;
+        mmu->matched_trigger = NULL;
+      }
+      take_trigger_action(t.action, t.address, pc, t.gva);
+    }
+    catch(trap_debug_mode&)
+    {
+      enter_debug_mode(DCSR_CAUSE_SWBP);
+    }
+    catch (wait_for_interrupt_t &t)
+    {
+      // Return to the outer simulation loop, which gives other devices/harts a
+      // chance to generate interrupts.
+      //
+      // In the debug ROM this prevents us from wasting time looping, but also
+      // allows us to switch to other threads only once per idle loop in case
+      // there is activity.
+      n = ++instret;
+      in_wfi = true;
+    }
+
+    state.minstret->bump(instret);
+
+    // Model a hart whose CPI is 1.
+    state.mcycle->bump(instret);
+
+    n -= instret;
+  }
+}

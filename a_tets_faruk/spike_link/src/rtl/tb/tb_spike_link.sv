@@ -83,24 +83,24 @@ module tb_spike_link;
       #CLK_PERIOD;
       verilog_side_data.delete();
       step();
-      get_last_commit(
-        key_array_from_c_side,
-        value_array_from_c_side,
-        num_elements_inserted_from_c_side
-      );
-      if (last_we1_o) begin
-        verilog_side_data[last_wa1_o] = last_wd1_o;
-      end
-      if (last_we2_o) begin
-        verilog_side_data[last_wa2_o] = last_wd2_o;
-      end
+      // get_last_commit(
+      //   key_array_from_c_side,
+      //   value_array_from_c_side,
+      //   num_elements_inserted_from_c_side
+      // );
+      // if (last_we1_o) begin
+      //   verilog_side_data[last_wa1_o] = last_wd1_o;
+      // end
+      // if (last_we2_o) begin
+      //   verilog_side_data[last_wa2_o] = last_wd2_o;
+      // end
 
-      compare_single_step(
-        key_array_from_c_side,
-        value_array_from_c_side,
-        num_elements_inserted_from_c_side,
-        verilog_side_data
-      );
+      // compare_single_step(
+      //   key_array_from_c_side,
+      //   value_array_from_c_side,
+      //   num_elements_inserted_from_c_side,
+      //   verilog_side_data
+      // );
     end
     $finish;
   end

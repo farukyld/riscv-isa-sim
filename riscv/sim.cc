@@ -280,6 +280,32 @@ void sim_t::step(size_t n)
   }
 }
 
+
+void sim_t::step_without_print(size_t n)
+{
+  for (size_t i = 0, steps = 0; i < n; i += steps)
+  {
+    // n interleave'den kucukse n kadar step'liyor current_proc'u
+    // n interleave'den buyukse current_proc interleave stepliyor
+    // !!! current step her zaman interleave'e denk gelsin, hic atlamasin.
+    steps = std::min(n - i, INTERLEAVE - current_step);
+    procs[current_proc]->step_without_print(steps);
+
+    current_step += steps;
+    // current_step her interleave oldugunda bir takim isler yapiyor
+    if (current_step == INTERLEAVE)
+    {
+      current_step = 0;
+      procs[current_proc]->get_mmu()->yield_load_reservation();
+      if (++current_proc == procs.size()) {
+        current_proc = 0;
+        reg_t rtc_ticks = INTERLEAVE / INSNS_PER_RTC_TICK;
+        for (auto &dev : devices) dev->tick(rtc_ticks);
+      }
+    }
+  }
+}
+
 void sim_t::add_device(reg_t addr, std::shared_ptr<abstract_device_t> dev) {
   bus.add_device(addr, dev.get());
   devices.push_back(dev);
@@ -434,7 +460,9 @@ void sim_t::idle()
 }
 
 void sim_t::idle_single_step(){
+  #if DEBUG_LEVEL >= DEBUG_WARN
   std::cout << "sim_t::idle_single_step" << std::endl;
+  #endif
   if (done())
     return;
 
@@ -442,7 +470,7 @@ void sim_t::idle_single_step(){
   if (debug /*|| ctrlc_pressed*/)
     interactive();
   else{
-    step(1);
+    step_without_print(1);
   }
 
   if (remote_bitbang)
