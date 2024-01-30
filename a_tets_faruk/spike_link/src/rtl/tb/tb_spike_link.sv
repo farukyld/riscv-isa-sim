@@ -29,7 +29,7 @@ module tb_spike_link;
     output int num_elements_inserted
   );
 
-  import "DPI-C" function void 
+  // import "DPI-C" function void 
 
   reg                     clk_i;
   reg                     rst_ni;
@@ -81,7 +81,7 @@ module tb_spike_link;
       #CLK_PERIOD;
       verilog_side_data.delete();
       step();
-      get_last_commit(
+      get_log_reg_write(
         key_array_from_c_side,
         value_array_from_c_side,
         num_elements_inserted_from_c_side
