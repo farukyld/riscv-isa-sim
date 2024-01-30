@@ -466,7 +466,7 @@ void sim_t::idle_single_step(){
   if (done())
     return;
 #ifndef SPIKE__COSIM_COMMON_CONF_H
-#error SPIKE__COSIM_COMMON_CONF_H header'i include'lanmadigi halde icindeki bir macro'yu kullanmaya calisiyor
+#error SPIKE__COSIM_COMMON_CONF_H header'i include'lanmadigi halde icindeki bir macroyu kullanmaya calisiyor
 #endif
 #ifdef DISABLE_INTERACTIVE_MODE
     step_without_print(1);
