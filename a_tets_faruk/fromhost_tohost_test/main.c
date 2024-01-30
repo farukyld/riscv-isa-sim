@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdlib.h>
 int main(int argc, char **argv)
 {
   printf("Hello World!\n");
@@ -14,4 +14,5 @@ int main(int argc, char **argv)
   printf("%p\n", fp);
   fprintf(fp, "%d", a);
   fclose(fp);
+  exit(243);
 }

@@ -19,7 +19,9 @@ long int modular_random()
 
     return state;
 }
- 
+
+// volatile long long unsigned int tohost;
+// volatile long long unsigned int fromhost;
 void main()
 {
     // tohost = 2; // !!! tohost'a 1 yazince direkt programi bitiriyor.
@@ -39,4 +41,10 @@ void main()
     __asm(
         "nop\n"
         "nop\n");
+
+    // tohost = 243 << 8 | 93; // basarisiz oldu.
+
+
+    // tohost = 93llu << (8*7) | 243llu << (8*6);
+
 }
