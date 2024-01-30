@@ -14,14 +14,6 @@ module tb_spike_link;
   typedef logic [KEY_WIDTH-1:0]   key_t;
   typedef logic [VALUE_WIDTH-1:0] value_t;
 
-
-  // c tarafindaki datayi verilog tarafina yazacak fonksiyon
-  import "DPI-C" function void write_unordered_map_to_sv_open_arrays(
-    output logic [KEY_WIDTH-1:0]   key_array  [][],
-    output logic [VALUE_WIDTH-1:0] value_array[][],
-    output int num_elements_inserted
-  );
-
   // void init()
   import "DPI-C" function void init();
   // !!! daha sonra bunu daha kullanilabilir hale getirmek icin bu sekile donust
@@ -31,11 +23,13 @@ module tb_spike_link;
 
   import "DPI-C" function bit simulation_completed();
 
-  import "DPI-C" function void get_last_commit(
+  import "DPI-C" function void get_log_reg_write(
     output logic [KEY_WIDTH-1:0]   key_array  [][],
     output logic [VALUE_WIDTH-1:0] value_array[][],
     output int num_elements_inserted
   );
+
+  import "DPI-C" function void 
 
   reg                     clk_i;
   reg                     rst_ni;

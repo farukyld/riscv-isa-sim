@@ -1,7 +1,5 @@
-#include "cosim_create_sim.h"
-#ifndef DONT_USE_VERILATOR
 #include "../../obj_dir_tb_spike_link/tb_spike_link__Dpi.h"
-#endif
+#include "cosim_create_sim.h"
 #include "args_reader.h"
 #include "debug_header.h"
 
@@ -89,12 +87,12 @@ svBit simulation_completed()
   return ((htif_t*)simulation_object)->exitcode_not_zero();
 }
 
-#ifndef DONT_USE_VERILATOR
+
 /// @brief for key and value arrays: packed dimension size: dim0; num entries: dim1; entry size in packets: dim2
 /// @param key_array the keys of the unordered_map is written to this array
 /// @param value_array the values of the unordered_map is written to this array in same order with keys written in the key_array
 /// @param num_entries_inserted is the output parameter to specify the caller how many elements are valid in the output
-void get_last_commit(const svOpenArrayHandle key_array, const svOpenArrayHandle value_array, int *num_entries_inserted)
+void get_log_reg_write(const svOpenArrayHandle key_array, const svOpenArrayHandle value_array, int *num_entries_inserted)
 {
   auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
 
@@ -114,7 +112,9 @@ void get_last_commit(const svOpenArrayHandle key_array, const svOpenArrayHandle 
       // key_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.first)) + part_ind);
       auto base_ptr = (uint32_t *)&(x.first);
       svBitVec32 temp = base_ptr[part_ind];
+#ifndef DONT_USE_VERILATOR
       svPutBitArrElemVecVal(key_array, &temp, NUM_ENTRIES, part_ind);
+#endif
     }
 
     // value'yu part part gonder
@@ -123,11 +123,12 @@ void get_last_commit(const svOpenArrayHandle key_array, const svOpenArrayHandle 
       // value_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.second)) + part_ind);
       auto base_ptr = (uint32_t *)&(x.second);
       svBitVec32 temp = base_ptr[part_ind];
+#ifndef DONT_USE_VERILATOR
       svPutBitArrElemVecVal(value_array, &temp, NUM_ENTRIES, part_ind);
+#endif
     }
     NUM_ENTRIES++;
   }
 
 #undef NUM_ENTRIES
 }
-#endif

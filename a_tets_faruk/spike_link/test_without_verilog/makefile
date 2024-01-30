@@ -22,6 +22,7 @@ INC_DIRS += -I/home/usr1/riscv-isa-sim/fesvr
 INC_DIRS += -I/home/usr1/riscv-isa-sim/
 INC_DIRS += -I/home/usr1/riscv-isa-sim/softfloat
 INC_DIRS += -I/home/usr1/riscv-isa-sim/fdt
+INC_DIRS += -I/home/usr1/verilator/include/vltstd
 
 # add dependency creation rule 
 .dependencies.d: $(CPP_FILES)
