@@ -1,7 +1,6 @@
-#define COSIMIF
 #define COSIMIF_POLIMORPH_TEST
 #include "htif.h"
-
+#include <iostream>
 
 void htif_t::single_step_without_communication(){
   // std::cout << "htif_t::use_idle calling idle" << std::endl;

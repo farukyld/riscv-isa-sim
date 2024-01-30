@@ -1,7 +1,6 @@
 #ifndef COSIM_CREATE_SIM_H
 #define COSIM_CREATE_SIM_H
 
-#define COSIMIF
 #include "sim.h"
 
 

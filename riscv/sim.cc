@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-
+#include "/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/src/cpp/spike__cosim_common_conf.h"
 #include "config.h"
 #include "sim.h"
 #include "mmu.h"
@@ -465,13 +465,18 @@ void sim_t::idle_single_step(){
   #endif
   if (done())
     return;
-
-  // once cosim_ctrlc_pressed kismini duzeltmem gerekiyor.
-  if (debug /*|| ctrlc_pressed*/)
+#ifndef SPIKE__COSIM_COMMON_CONF_H
+#error SPIKE__COSIM_COMMON_CONF_H header'i include'lanmadigi halde icindeki bir macro'yu kullanmaya calisiyor
+#endif
+#ifdef DISABLE_INTERACTIVE_MODE
+    step_without_print(1);
+#else
+  if (debug || ctrlc_pressed)
     interactive();
   else{
     step_without_print(1);
   }
+#endif
 
   if (remote_bitbang)
     remote_bitbang->tick();

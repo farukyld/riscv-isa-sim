@@ -1,6 +1,5 @@
 // See LICENSE for license details.
 
-#define COSIMIF
 #include "config.h"
 #include "htif.h"
 #include "rfb.h"

@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-#define COSIMIF
+#include "/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/src/cpp/spike__cosim_common_conf.h"
 #include "cosim_create_sim.h"
 #include "debug_header.h"
 #include "config.h"
@@ -22,9 +22,6 @@
 #include <cinttypes>
 #include "../VERSION"
 
-#define FORCE_LOG_COMMITS
-#define USE_DUMP_DTS_FLAG
-#define DISABLE_INTERACTIVE_MODE
 
 static void help(int exit_code = 1)
 {
@@ -35,6 +32,9 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  -m<n>                 Provide <n> MiB of target memory [default 2048]\n");
   fprintf(stderr, "  -m<a:m,b:n,...>       Provide memory regions of size m and n bytes\n");
   fprintf(stderr, "                          at base addresses a and b (with 4 KiB alignment)\n");
+#ifndef SPIKE__COSIM_COMMON_CONF_H
+#error SPIKE__COSIM_COMMON_CONF_H header'i include'lanmadigi halde icindeki bir macro'yu kullanmaya calisiyor
+#endif
 #ifndef DISABLE_INTERACTIVE_MODE
   fprintf(stderr, "  -d                    Interactive debug mode\n");
 #endif

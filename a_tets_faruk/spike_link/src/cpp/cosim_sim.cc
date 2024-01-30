@@ -1,5 +1,5 @@
-#define COSIMIF
 #include "config.h"
+#define COSIMIF
 #include "sim.h"
 #include "mmu.h"
 #include "dts.h"
@@ -20,21 +20,13 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
-// bunlari yapabilmek icin sim_t'nin constructor'unu da degistirmek gerekecek.
+// // bunlari yapabilmek icin sim_t'nin constructor'unu da degistirmek gerekecek.
 // static void cosim_handle_signal(int sig)
 // {
 //   if (ctrlc_pressed)
 //     exit(-1);
 //   ctrlc_pressed = true;
 //   signal(sig, &cosim_handle_signal);
-// }
-
-// bu asagidakini cfg degisiyor mu diye bakmak icin koymustum
-// start_pc yanlis deger hatasi icin
-
-// reg_t sim_t::htif_get_entry_point()
-// {
-//   return htif_t::get_entry_point();
 // }
 
 void sim_t::prerun()
