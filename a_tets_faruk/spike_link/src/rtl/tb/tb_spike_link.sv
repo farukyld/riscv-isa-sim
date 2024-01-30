@@ -77,9 +77,7 @@ module tb_spike_link;
     #CLK_PERIOD;
     clk_i = 0;
     rst_ni = 1;
-    /* verilator lint_off IGNOREDRETURN */
     init();
-    /* verilator lint_on IGNOREDRETURN */
 
     for (int ii = 0;; ii = ii + 1) begin: simulation_loop
       if (simulation_completed()) begin
