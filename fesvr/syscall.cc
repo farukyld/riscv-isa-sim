@@ -220,6 +220,7 @@ void syscall_t::handle_syscall(command_t cmd)
 
 reg_t syscall_t::sys_exit(reg_t code, reg_t a1, reg_t a2, reg_t a3, reg_t a4, reg_t a5, reg_t a6)
 {
+  std::cout << "sys_exit is called with code: " << code << std::endl;
   htif->exitcode = code << 1 | 1;
   return 0;
 }
