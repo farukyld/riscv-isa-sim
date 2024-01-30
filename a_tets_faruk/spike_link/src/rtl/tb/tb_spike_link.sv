@@ -29,6 +29,8 @@ module tb_spike_link;
 
   import "DPI-C" function void step();
 
+  import "DPI-C" function bit simulation_completed();
+
   import "DPI-C" function void get_last_commit(
     output logic [KEY_WIDTH-1:0]   key_array  [][],
     output logic [VALUE_WIDTH-1:0] value_array[][],
@@ -80,6 +82,10 @@ module tb_spike_link;
     /* verilator lint_on IGNOREDRETURN */
 
     for (int ii = 0;; ii = ii + 1) begin: simulation_loop
+      if (simulation_completed()) begin
+        $display("simulation completed");
+        break;
+      end
       #CLK_PERIOD;
       verilog_side_data.delete();
       step();

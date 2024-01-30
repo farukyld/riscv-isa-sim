@@ -84,6 +84,11 @@ void step()
   step_callback();
 }
 
+svBit simulation_completed()
+{
+  return ((htif_t*)simulation_object)->exitcode_not_zero();
+}
+
 #ifndef DONT_USE_VERILATOR
 /// @brief for key and value arrays: packed dimension size: dim0; num entries: dim1; entry size in packets: dim2
 /// @param key_array the keys of the unordered_map is written to this array

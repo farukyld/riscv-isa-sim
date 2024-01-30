@@ -16,10 +16,12 @@ extern "C" {
 
 
     // DPI IMPORTS
-    // DPI import at src/rtl/tb/tb_spike_link.sv:32:32
+    // DPI import at src/rtl/tb/tb_spike_link.sv:34:32
     extern void get_last_commit(const svOpenArrayHandle key_array, const svOpenArrayHandle value_array, int* num_elements_inserted);
     // DPI import at src/rtl/tb/tb_spike_link.sv:26:32
     extern void init();
+    // DPI import at src/rtl/tb/tb_spike_link.sv:32:31
+    extern svBit simulation_completed();
     // DPI import at src/rtl/tb/tb_spike_link.sv:30:32
     extern void step();
     // DPI import at src/rtl/tb/tb_spike_link.sv:19:32

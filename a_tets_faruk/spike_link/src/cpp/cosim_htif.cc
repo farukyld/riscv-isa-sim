@@ -46,6 +46,10 @@ bool htif_t::communication_available()
   return tohost_addr != 0;
 }
 
+bool htif_t::exitcode_not_zero()
+{
+  return exitcode != 0;
+}
 
 
 void htif_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback)
