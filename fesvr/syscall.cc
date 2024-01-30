@@ -467,7 +467,7 @@ void syscall_t::dispatch(reg_t mm)
 
   if (n >= table.size() || !table[n])
     throw std::runtime_error("bad syscall #" + std::to_string(n));
-
+  // !!! magicmem[1] exit code. bir saga kaydirilip 0. bite bir yaziliyor. ve htif_t::exitcode'a yaziliyor.
   magicmem[0] = htif->to_target((this->*table[n])(htif->from_target(magicmem[1]), htif->from_target(magicmem[2]), htif->from_target(magicmem[3]), htif->from_target(magicmem[4]), htif->from_target(magicmem[5]), htif->from_target(magicmem[6]), htif->from_target(magicmem[7])));
 
   memif->write(mm, sizeof(magicmem), magicmem);
