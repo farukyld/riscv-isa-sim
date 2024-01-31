@@ -1,15 +1,12 @@
 #include "../../obj_dir_tb_spike_link/tb_spike_link__Dpi.h"
 #include "decode.h"
 
-typedef union {
+typedef 
   struct {
     reg_t key;
     freg_t value;
-    } key_value_pair;
-#define KVP_WIDTH_IN_INT32 (sizeof(reg_t)/sizeof(int32_t)+sizeof(freg_t)/sizeof(int32_t))
-  int32_t packed_key_value_pair[KVP_WIDTH_IN_INT32];
-#undef KVP_WIDTH_IN_INT32
 } commit_log_reg_item_t;
+#define CMT_LOG_REG_ITEM_DPI_WORDS (sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal))
 
 typedef union {
   struct {

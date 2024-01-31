@@ -19,7 +19,7 @@ module tb_spike_link;
 
     init();
 
-    for (int ii = 0;ii < 1; ii = ii + 1) begin: simulation_loop
+    for (int ii = 0;; ii = ii + 1) begin: simulation_loop
       if (simulation_completed()) begin
         $display("simulation completed");
         break;
@@ -53,10 +53,10 @@ module tb_spike_link;
       //   verilog_side_data
       // );
       
-      temp_key = log_reg_write_from_c[0].key;
-      temp_value = log_reg_write_from_c[0].value;
-      $display("temp_key: %d", temp_key);
-      $display("temp_value: %d", temp_value);
+      // temp_key = log_reg_write_from_c[0].key;
+      // temp_value = log_reg_write_from_c[0].value;
+      // $display("temp_key: %d", temp_key);
+      // $display("temp_value: %d", temp_value);
 
     end
     $finish;

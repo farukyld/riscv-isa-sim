@@ -1,4 +1,6 @@
-#include "cosimif.h"
+#include "cosimif.h" 
+#include "common.h"
+#include "spike__cosim_common_conf.h"
 #include "cosim_create_sim.h"
 #include "args_reader.h"
 #include "debug_header.h"
@@ -91,24 +93,26 @@ void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* ins
 {
   auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
 
-  DEBUG_PRINT_WARN("burada iki tarafin boyutlari icin asertion konulabilir\n");
+#ifdef ENABLE_SIZE_ASSERTION
+#warning size assertion enabled. checking at each simulation step.
+  if (unlikely(CMT_LOG_REG_ITEM_DPI_WORDS != svSize(log_reg_write_o,2))){
+    std::cout << "sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal) != svSize(log_reg_write_o,2)" << std::endl;
+    std::cout << "sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal): " << sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal) << std::endl;
+    std::cout << "svSize(log_reg_write_o,2): " << svSize(log_reg_write_o,2) << std::endl;
+    exit(1);
+  }
+#endif
 
   int& num_entries = *inserted_elements_o;
   num_entries = 0;
   // log_reg_write_o'nun her bir elementi 192 bit. ilk 64 bit key, sonraki 128 bit value.
   for (auto x: map_from_c_side){
-    void* ptr1 = svGetArrayPtr(log_reg_write_o);
-    std::cout << "ptr1: " << ptr1 << std::endl;
-    commit_log_reg_item_t& array_entry = *(commit_log_reg_item_t*)svGetArrElemPtr1(log_reg_write_o, 0);
-    std::cout << "array_entry_ptr: " << &array_entry << std::endl;
-    std::cout << "----------array_entry: " << array_entry.packed_key_value_pair[0] << std::endl;
-    
-    
-    // array_entry'ye yazacagiz.
-
-    // svPutPartselBit(array_entry, 1234, 0, DPI_W); // seg fault.
-    // svPutPartselBit(array_entry, key_value_pair.packed_key_value_pair[1], KEY_W, VALUE_W);
-
+    commit_log_reg_item_t kvp = {x.first, x.second};
+    commit_log_reg_item_t* kvp_ptr = &kvp;
+    svBitVecVal* part_ptr = (svBitVecVal*) kvp_ptr;
+    for (int i = 0; i < CMT_LOG_REG_ITEM_DPI_WORDS; i++, part_ptr++){
+      svPutBitArrElemVecVal(log_reg_write_o, part_ptr, num_entries, i);
+    }
     num_entries++;
   }
 }
