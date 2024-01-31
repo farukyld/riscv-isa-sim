@@ -87,26 +87,7 @@ svBit simulation_completed()
   return ((htif_t*)simulation_object)->exitcode_not_zero();
 }
 
-void look_array(const svOpenArrayHandle array){
-  std::cout <<"c side: array.size0: " << svSize(array,0) << std::endl;
-  int* arr_elm_ptr = (int*)svGetArrElemPtr1(array,0);
-  std::cout << "c side: arr_elm_ptr: " << arr_elm_ptr << std::endl;
-  std::cout << "c side: arr_elm_ptr dereferenced: " << *arr_elm_ptr << std::endl;
-  std::cout << "c side: changing arr element "<< std::endl;
-  *arr_elm_ptr= 33;
-}
-
-
-void look_array_of_nonstd_type(const svOpenArrayHandle array){
-  std::cout <<"c side: array.size0: " << svSize(array,0) << std::endl;
-  svLogicVec32* arr_elm_ptr = (svLogicVec32*)svGetArrElemPtr1(array,0);
-  std::cout << "c side: arr_elm_ptr: " << arr_elm_ptr << std::endl;
-  std::cout << "c side: arr_elm_ptr dereferenced: " << (*arr_elm_ptr).c << std::endl;
-  std::cout << "c side: changing arr element "<< std::endl;
-  (*arr_elm_ptr).c = 33;
-}
-
-void get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o)
+void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o)
 {
   auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
 
@@ -132,15 +113,5 @@ void get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_el
   }
 }
 
-void get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o){
-  auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_mem_read;
-
-  DEBUG_PRINT_WARN("burada iki tarafin boyutlari icin asertion konulabilir\n");
-
-  int& num_entries = *inserted_elements_o;
-
-
-}
-
-
-void get_log_mem_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o){}
+extern void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o){}
+extern void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o){}

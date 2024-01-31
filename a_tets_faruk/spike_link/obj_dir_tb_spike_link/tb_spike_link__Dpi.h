@@ -16,21 +16,17 @@ extern "C" {
 
 
     // DPI IMPORTS
-    // DPI import at src/pkg/cosim_pkg.sv:39:32
-    extern void get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o);
-    // DPI import at src/pkg/cosim_pkg.sv:44:32
-    extern void get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o);
-    // DPI import at src/pkg/cosim_pkg.sv:34:32
-    extern void get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o);
-    // DPI import at src/pkg/cosim_pkg.sv:28:32
+    // DPI import at src/pkg/cosim_pkg.sv:37:32
     extern void init();
-    // DPI import at src/tb/tb_spike_link.sv:19:32
-    extern void look_array(const svOpenArrayHandle array);
-    // DPI import at src/tb/tb_spike_link.sv:25:32
-    extern void look_array_of_nonstd_type(const svOpenArrayHandle array);
-    // DPI import at src/pkg/cosim_pkg.sv:32:31
+    // DPI import at src/pkg/cosim_pkg.sv:43:32
+    extern void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o);
+    // DPI import at src/pkg/cosim_pkg.sv:53:32
+    extern void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o);
+    // DPI import at src/pkg/cosim_pkg.sv:48:32
+    extern void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o);
+    // DPI import at src/pkg/cosim_pkg.sv:41:31
     extern svBit simulation_completed();
-    // DPI import at src/pkg/cosim_pkg.sv:30:32
+    // DPI import at src/pkg/cosim_pkg.sv:39:32
     extern void step();
 
 #ifdef __cplusplus
