@@ -1,10 +1,10 @@
 
 # Automatically detect top module names from the tb directory
-TB_DIR := src/rtl/tb
+TB_DIR := src/tb
 TB_MODULES := $(notdir $(basename $(wildcard $(TB_DIR)/*.sv)))
 
 # Source and C++ files
-SRC_FILES := $(wildcard src/rtl/design/*.sv) $(wildcard src/rtl/pkg/*.sv)
+SRC_FILES := $(wildcard src/pkg/*.sv) $(wildcard src/rtl/*.sv)
 CPP_FILES := $(wildcard src/cpp/*.cc)
 LIBRARIES :=
 # LIBRARIES += $(wildcard /home/usr1/riscv-isa-sim/build/*.a)

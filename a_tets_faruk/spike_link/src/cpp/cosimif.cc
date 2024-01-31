@@ -1,18 +1,18 @@
-#include "../../obj_dir_tb_spike_link/tb_spike_link__Dpi.h"
+#include "cosimif.h"
 #include "cosim_create_sim.h"
 #include "args_reader.h"
 #include "debug_header.h"
 
-#ifndef KEY_WIDTH
-#define KEY_WIDTH 64
+#ifndef KEY_W
+#define KEY_W sizeof(reg_t)*8
 #endif
 
-#ifndef VALUE_WIDTH
-#define VALUE_WIDTH 128
+#ifndef VALUE_W
+#define VALUE_W sizeof(freg_t)*8
 #endif
 
-#ifndef DPI_WIDTH
-#define DPI_WIDTH 32
+#ifndef DPI_W
+#define DPI_W sizeof(svBitVecVal)*8
 #endif
 
 sim_t *simulation_object;
@@ -87,48 +87,60 @@ svBit simulation_completed()
   return ((htif_t*)simulation_object)->exitcode_not_zero();
 }
 
+void look_array(const svOpenArrayHandle array){
+  std::cout <<"c side: array.size0: " << svSize(array,0) << std::endl;
+  int* arr_elm_ptr = (int*)svGetArrElemPtr1(array,0);
+  std::cout << "c side: arr_elm_ptr: " << arr_elm_ptr << std::endl;
+  std::cout << "c side: arr_elm_ptr dereferenced: " << *arr_elm_ptr << std::endl;
+  std::cout << "c side: changing arr element "<< std::endl;
+  *arr_elm_ptr= 33;
+}
 
-/// @brief for key and value arrays: packed dimension size: dim0; num entries: dim1; entry size in packets: dim2
-/// @param key_array the keys of the unordered_map is written to this array
-/// @param value_array the values of the unordered_map is written to this array in same order with keys written in the key_array
-/// @param num_entries_inserted is the output parameter to specify the caller how many elements are valid in the output
-void get_log_reg_write(const svOpenArrayHandle key_array, const svOpenArrayHandle value_array, int *num_entries_inserted)
+
+void look_array_of_nonstd_type(const svOpenArrayHandle array){
+  std::cout <<"c side: array.size0: " << svSize(array,0) << std::endl;
+  svLogicVec32* arr_elm_ptr = (svLogicVec32*)svGetArrElemPtr1(array,0);
+  std::cout << "c side: arr_elm_ptr: " << arr_elm_ptr << std::endl;
+  std::cout << "c side: arr_elm_ptr dereferenced: " << (*arr_elm_ptr).c << std::endl;
+  std::cout << "c side: changing arr element "<< std::endl;
+  (*arr_elm_ptr).c = 33;
+}
+
+void get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o)
 {
   auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
 
   DEBUG_PRINT_WARN("burada iki tarafin boyutlari icin asertion konulabilir\n");
 
-#define NUM_ENTRIES (*num_entries_inserted)
+  int& num_entries = *inserted_elements_o;
+  num_entries = 0;
+  // log_reg_write_o'nun her bir elementi 192 bit. ilk 64 bit key, sonraki 128 bit value.
+  for (auto x: map_from_c_side){
+    void* ptr1 = svGetArrayPtr(log_reg_write_o);
+    std::cout << "ptr1: " << ptr1 << std::endl;
+    commit_log_reg_item_t& array_entry = *(commit_log_reg_item_t*)svGetArrElemPtr1(log_reg_write_o, 0);
+    std::cout << "array_entry_ptr: " << &array_entry << std::endl;
+    std::cout << "----------array_entry: " << array_entry.packed_key_value_pair[0] << std::endl;
+    
+    
+    // array_entry'ye yazacagiz.
 
-  NUM_ENTRIES = 0;
-  // Traversing an unordered map
-  for (auto x : map_from_c_side)
-  {
-    // x.first // 64 bit, int32 cinsinden 2 tane
-    // x.second // 128 bit, int32 cinsinden 4 tane
-    // key'i part part gonder
-    for (int part_ind = 0; part_ind < KEY_WIDTH / DPI_WIDTH; part_ind++)
-    {
-      // key_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.first)) + part_ind);
-      auto base_ptr = (uint32_t *)&(x.first);
-      svBitVec32 temp = base_ptr[part_ind];
-#ifndef DONT_USE_VERILATOR
-      svPutBitArrElemVecVal(key_array, &temp, NUM_ENTRIES, part_ind);
-#endif
-    }
+    // svPutPartselBit(array_entry, 1234, 0, DPI_W); // seg fault.
+    // svPutPartselBit(array_entry, key_value_pair.packed_key_value_pair[1], KEY_W, VALUE_W);
 
-    // value'yu part part gonder
-    for (int part_ind = 0; part_ind < VALUE_WIDTH / DPI_WIDTH; part_ind++)
-    {
-      // value_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.second)) + part_ind);
-      auto base_ptr = (uint32_t *)&(x.second);
-      svBitVec32 temp = base_ptr[part_ind];
-#ifndef DONT_USE_VERILATOR
-      svPutBitArrElemVecVal(value_array, &temp, NUM_ENTRIES, part_ind);
-#endif
-    }
-    NUM_ENTRIES++;
+    num_entries++;
   }
-
-#undef NUM_ENTRIES
 }
+
+void get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o){
+  auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_mem_read;
+
+  DEBUG_PRINT_WARN("burada iki tarafin boyutlari icin asertion konulabilir\n");
+
+  int& num_entries = *inserted_elements_o;
+
+
+}
+
+
+void get_log_mem_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o){}

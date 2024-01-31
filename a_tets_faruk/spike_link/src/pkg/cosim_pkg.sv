@@ -32,17 +32,17 @@ package cosim_pkg;
   import "DPI-C" function bit simulation_completed();
 
   import "DPI-C" function void get_log_reg_write(
-    output commit_log_reg_item_t log_reg_write_o[0: CommitLogRegEntries-1],
+    output commit_log_reg_item_t log_reg_write_o[],
     output int inserted_elements_o
   );
 
   import "DPI-C" function void get_log_mem_read(
-    output commit_log_mem_item_t log_mem_read_o[0: CommitLogRegEntries-1],
+    output commit_log_mem_item_t log_mem_read_o[],
     output int inserted_elements_o
   );
 
   import "DPI-C" function void get_log_mem_write(
-    output commit_log_mem_item_t log_mem_write_o[0: CommitLogRegEntries-1],
+    output commit_log_mem_item_t log_mem_write_o[],
     output int inserted_elements_o
   );
 
@@ -73,7 +73,5 @@ package cosim_pkg;
       
     end
   endtask
-
-
 
 endpackage
