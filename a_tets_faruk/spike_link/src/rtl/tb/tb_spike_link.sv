@@ -1,12 +1,8 @@
-
-`include "src/rtl/tb/common_header.svh"
-
-
 module tb_spike_link;
 
-  localparam DPI_WIDTH       = `DPI_WIDTH;
-  localparam KEY_WIDTH       = `KEY_WIDTH;
-  localparam VALUE_WIDTH     = `VALUE_WIDTH;
+  localparam DPI_WIDTH       = 32;
+  localparam KEY_WIDTH       = 64;
+  localparam VALUE_WIDTH     = 128;
 
   // -verilator asagidaki hatayi verdigi icin MAX_ENTRY_COUNT tanimladim
   // -verilator: passing dynamic arrays to c function as argument not yet supported.
@@ -14,6 +10,26 @@ module tb_spike_link;
   localparam CLK_PERIOD      = 10;
   always #(CLK_PERIOD/2) clk_i = ~clk_i;
 
+
+  typedef logic [KEY_WIDTH-1:0]   key_t;
+  typedef logic [VALUE_WIDTH-1:0] value_t;
+
+  // void init()
+  import "DPI-C" function void init();
+  // !!! daha sonra bunu daha kullanilabilir hale getirmek icin bu sekile donust
+  // import "DPI-C" function int init(input int argc, input string argv[]);
+
+  import "DPI-C" function void step();
+
+  import "DPI-C" function bit simulation_completed();
+
+  import "DPI-C" function void get_log_reg_write(
+    output logic [KEY_WIDTH-1:0]   key_array  [][],
+    output logic [VALUE_WIDTH-1:0] value_array[][],
+    output int num_elements_inserted
+  );
+
+  import "DPI-C" function void 
 
   reg                     clk_i;
   reg                     rst_ni;
@@ -65,7 +81,7 @@ module tb_spike_link;
       #CLK_PERIOD;
       verilog_side_data.delete();
       step();
-      get_log_reg_write(
+      get_last_commit(
         key_array_from_c_side,
         value_array_from_c_side,
         num_elements_inserted_from_c_side
@@ -89,59 +105,65 @@ module tb_spike_link;
   
   
 
-endmodule
+  task automatic compare_single_step(
+    input logic [DPI_WIDTH-1:0] correct_key_array [0:MAX_ENTRY_COUNT-1][0:KEY_WIDTH/DPI_WIDTH-1],
+    input logic [DPI_WIDTH-1:0] correct_value_array [0:MAX_ENTRY_COUNT-1][0:VALUE_WIDTH/DPI_WIDTH-1],
+    input int entry_count,
+    input value_t verilog_map [key_t]
+  );
+    int ii; 
+    for (ii = 0; ii < entry_count; ii = ii + 1) begin: comparison_itr
+        key_t key = packed_key(correct_key_array[ii]);
+        /* verilator lint_off WIDTHTRUNC */
+        if ((!(verilog_map.exists(key)))) begin
+        /* verilator lint_on WIDTHTRUNC */
 
+          // $display(
+          //   "key: %0d inserted from c side not in verilog side\n", key
+          // );
+        // key exists, but values are not equal
+        end else if (verilog_map[key] != packed_value(correct_value_array[ii])) begin
+          // $display(
+          //   "key-value-pair: (%0d, %0d) inserted from c side",
+          //   key,
+          //   packed_value(correct_value_array[ii]),
+          // );
+          // $display("not equal to the one in verilog");
+          // $display(
+          //   "side (verilog value = %0d)\n",verilog_map[key]
+          // );
 
-task automatic compare_single_step(
-  input logic [`DPI_WIDTH-1:0] correct_key_array [0:`MAX_ENTRY_COUNT-1][0:`KEY_WIDTH/`DPI_WIDTH-1],
-  input logic [`DPI_WIDTH-1:0] correct_value_array [0:`MAX_ENTRY_COUNT-1][0:`VALUE_WIDTH/`DPI_WIDTH-1],
-  input int entry_count,
-  input value_t verilog_map [key_t]
-);
-  int ii; 
-  for (ii = 0; ii < entry_count; ii = ii + 1) begin: comparison_itr
-      key_t key = pack_2x32_to64(correct_key_array[ii]);
-      /* verilator lint_off WIDTHTRUNC */
-      if ((!(verilog_map.exists(key)))) begin
-      /* verilator lint_on WIDTHTRUNC */
-
-        // $display(
-        //   "key: %0d inserted from c side not in verilog side\n", key
-        // );
-      // key exists, but values are not equal
-      end else if (verilog_map[key] != pack_4x32_to128(correct_value_array[ii])) begin
-        // $display(
-        //   "key-value-pair: (%0d, %0d) inserted from c side",
-        //   key,
-        //   pack_4x32_to128(correct_value_array[ii]),
-        // );
-        // $display("not equal to the one in verilog");
-        // $display(
-        //   "side (verilog value = %0d)\n",verilog_map[key]
-        // );
-
-      // key exists, values are equal
-      end else begin
-        // $display(
-        //   "success on key-value-pair: (%0d, %0d)\n",
-        //   key,
-        //   verilog_map[key]
-        // );
+        // key exists, values are equal
+        end else begin
+          // $display(
+          //   "success on key-value-pair: (%0d, %0d)\n",
+          //   key,
+          //   verilog_map[key]
+          // );
+        end
       end
+  endtask
+
+  // automatic -> defined variables are auto
+  // default (static) -> defined variables are shared among
+  // concurrent calls of that function. 13.4.2
+  function automatic logic [KEY_WIDTH-1:0] packed_key (
+    input  logic [DPI_WIDTH-1:0] parts[0:KEY_WIDTH/DPI_WIDTH-1]
+  );
+    int ii;
+    for (ii = 0; ii < KEY_WIDTH/DPI_WIDTH; ii = ii + 1) begin:packing
+      packed_key[(ii+1)*DPI_WIDTH-1-:DPI_WIDTH] = parts[ii];
     end
-endtask
+  endfunction
 
-// automatic -> defined variables are auto
-// default (static) -> defined variables are shared among
-// concurrent calls of that function. 13.4.2
-function automatic logic [63:0] pack_2x32_to64 (
-  input  logic [31:0] parts[0:1]
-);
-  pack_2x32_to64 = {parts[1], parts[0]};
-endfunction
+  function automatic logic [VALUE_WIDTH-1:0] packed_value (
+    input  logic [DPI_WIDTH-1:0]   parts[0:VALUE_WIDTH/DPI_WIDTH-1]
+  );
+    int ii;
+    for (ii = 0; ii < VALUE_WIDTH/DPI_WIDTH; ii = ii + 1) begin:packing
+      packed_value[(ii+1)*DPI_WIDTH-1-:DPI_WIDTH] = parts[ii];
+    end
+  endfunction
 
-function automatic logic [127:0] pack_4x32_to128 (
-  input  logic [31:0] parts[0:3]
-);
-  pack_4x32_to128 = {parts[3], parts[2], parts[1], parts[0]};
-endfunction
+  
+endmodule
