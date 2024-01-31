@@ -5,10 +5,10 @@ package cosim_pkg;
   parameter DPI_W = 32; // svdpi.h'den dolayi sabit
 
 
-  // -verilator asagidaki hatayi verdigi icin CommitLogRegEntries tanimladim
+  // -verilator asagidaki hatayi verdigi icin CommitLogEntries tanimladim
   // -verilator: passing dynamic arrays to c function as argument not yet supported.
 
-  parameter int unsigned CommitLogRegEntries = 16; // degistirilebilir. 16'yi gecmeyecegini dusundum
+  parameter int unsigned CommitLogEntries = 16; // degistirilebilir. 16'yi gecmeyecegini dusundum
 
 
   /*verilog tarafinda kullanilacak*/
@@ -30,9 +30,9 @@ package cosim_pkg;
 
   typedef int dpi_word_t;
 
-  parameter LOG_REG_WRITE_ITEM_DPI_WORDS = (XREG_W/DPI_W + FREG_W/DPI_W);
+  parameter LOG_REG_WRITE_ITEM_DPI_WORDS = XREG_W/DPI_W + FREG_W/DPI_W;
 
-  parameter LOG_MEM_ITEM_INTS_DPI_WORDS = (2*XREG_W/DPI_W + 1);
+  parameter LOG_MEM_ITEM_INTS_DPI_WORDS = 2*XREG_W/DPI_W + 1;
 
   import "DPI-C" function void init();
 
@@ -42,30 +42,35 @@ package cosim_pkg;
 
   import "DPI-C" function void private_get_log_reg_write(
     output int log_reg_write_o [][LOG_REG_WRITE_ITEM_DPI_WORDS],
-    output int inserted_elements_o
+    output int inserted_elements_o,
+    input int processor_i
   );
 
   import "DPI-C" function void private_get_log_mem_read(
     output commit_log_mem_item_t log_mem_read_o[],
-    output int inserted_elements_o
+    output int inserted_elements_o,
+    input int processor_i
   );
 
   import "DPI-C" function void private_get_log_mem_write(
     output dpi_word_t log_mem_write_o [][],
-    output int inserted_elements_o
+    output int inserted_elements_o,
+    input int processor_i
   );
+
+  import "DPI-C" function void wait_key();
 
 
   function void get_log_reg_write(
-    output commit_log_reg_item_t log_reg_write_o[CommitLogRegEntries],
+    output commit_log_reg_item_t log_reg_write_o[CommitLogEntries],
     output int inserted_elements_o
   );
     // burda private_get_log_reg_write_from_c cagirilacak
     // ciktisi log_reg_write_o'ya yazilacak
-    dpi_word_t log_reg_write_from_c [CommitLogRegEntries][LOG_REG_WRITE_ITEM_DPI_WORDS];
+    dpi_word_t log_reg_write_from_c [CommitLogEntries][LOG_REG_WRITE_ITEM_DPI_WORDS];
     int n;
 
-    private_get_log_reg_write(log_reg_write_from_c, inserted_elements_o);
+    private_get_log_reg_write(log_reg_write_from_c, inserted_elements_o, 0);
     
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_reg_write_itr
       log_reg_write_o[ii].key = pack_2x32_to64le(log_reg_write_from_c[ii][0:1]);
@@ -75,15 +80,15 @@ package cosim_pkg;
   
 
   function void get_log_mem_read(
-    output commit_log_mem_item_t log_mem_read_o[CommitLogRegEntries],
+    output commit_log_mem_item_t log_mem_read_o[CommitLogEntries],
     output int inserted_elements_o
   );
     // burda private_get_log_mem_read_from_c cagirilacak
     // ciktisi log_mem_read_o'ya yazilacak
-    dpi_word_t log_mem_read_from_c [CommitLogRegEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
+    dpi_word_t log_mem_read_from_c [CommitLogEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
     int n;
 
-    private_get_log_mem_read(log_mem_read_from_c, inserted_elements_o);
+    private_get_log_mem_read(log_mem_read_from_c, inserted_elements_o, 0);
 
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_mem_read_itr
       log_mem_read_o[ii].addr = pack_2x32_to64le(log_mem_read_from_c[ii][0:1]);
@@ -96,16 +101,16 @@ package cosim_pkg;
 
 
   function void get_log_mem_write(
-    output commit_log_mem_item_t log_mem_write_o[CommitLogRegEntries],
+    output commit_log_mem_item_t log_mem_write_o[CommitLogEntries],
     output int inserted_elements_o
   ); 
     // burda private_get_log_mem_write_from_c cagirilacak
     // ciktisi log_mem_write_o'ya yazilacak
-    dpi_word_t log_mem_write_from_c [CommitLogRegEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
+    dpi_word_t log_mem_write_from_c [CommitLogEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
     int n;
 
-    private_get_log_mem_write(log_mem_write_from_c, inserted_elements_o);
-    $display("get_log_mem_write called");
+    private_get_log_mem_write(log_mem_write_from_c, inserted_elements_o, 0);
+
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_mem_write_itr
       log_mem_write_o[ii].addr = pack_2x32_to64le(log_mem_write_from_c[ii][0:1]);
       log_mem_write_o[ii].wdata = pack_2x32_to64le(log_mem_write_from_c[ii][2:3]);
@@ -133,7 +138,7 @@ package cosim_pkg;
 
 
   task automatic compare_log_reg_write(
-    input commit_log_reg_item_t correct_log_reg_write [CommitLogRegEntries],
+    input commit_log_reg_item_t correct_log_reg_write [CommitLogEntries],
     input int entry_count,
     input freg_t verilog_map [reg_t]
   );

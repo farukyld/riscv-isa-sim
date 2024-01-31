@@ -89,9 +89,9 @@ svBit simulation_completed()
   return ((htif_t*)simulation_object)->exitcode_not_zero();
 }
 
-void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o)
+void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o, const int processor_i)
 {
-  auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
+  auto map_from_c_side = simulation_object->get_core(processor_i)->get_state()->log_reg_write;
 
 #ifdef ENABLE_SIZE_ASSERTION
 #warning size assertion enabled. checking at each simulation step.
@@ -117,5 +117,84 @@ void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* ins
   }
 }
 
-extern void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o){}
-extern void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o){}
+
+void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o, const int processor_i){
+  auto mem_read_vector = simulation_object->get_core(processor_i)->get_state()->log_mem_read;
+  #ifdef ENABLE_SIZE_ASSERTION
+  #warning size assertion enabled. checking at each simulation step.
+  if (unlikely(CMT_LOG_MEM_ITEM_DPI_WORDS != svSize(log_mem_read_o,2))){
+    // print UINT64T_W/DPI_W
+    std::cout << "UINT64T_W/DPI_W: " << UINT64T_W/DPI_W << std::endl;
+    // print FREGT_W/DPI_W
+    std::cout << "FREGT_W/DPI_W: " << FREGT_W/DPI_W << std::endl;
+    // print UINT8T_W/DPI_W
+    std::cout << "UINT8T_W/DPI_W: " << UINT8T_W/DPI_W << std::endl;
+    // print CMT_LOG_MEM_ITEM_DPI_WORDS
+    std::cout << "CMT_LOG_MEM_ITEM_DPI_WORDS: " << CMT_LOG_MEM_ITEM_DPI_WORDS << std::endl;
+    
+    std::cout << "svSize(log_mem_read_o,2): " << svSize(log_mem_read_o,2) << std::endl;
+    std::cout << "sizeof(unsigned char): " << sizeof(unsigned char) << std::endl;
+    std::cout << "sizeof(svBitVecVal): " << sizeof(svBitVecVal) << std::endl;
+    
+    exit(1);
+  }
+  #endif
+
+  int& num_entries = *inserted_elements_o;
+  num_entries = 0;
+
+  for (auto x: mem_read_vector){
+    commit_log_mem_item_t addr_wdata_len_tuple = {std::get<0>(x), std::get<1>(x), std::get<2>(x)};
+
+    commit_log_mem_item_t* awl_ptr = &addr_wdata_len_tuple;
+    svBitVecVal* part_ptr = (svBitVecVal*) awl_ptr;
+    for (int i = 0; i < CMT_LOG_MEM_ITEM_DPI_WORDS; i++, part_ptr++){
+      svPutBitArrElemVecVal(log_mem_read_o, part_ptr, num_entries, i);
+    }
+    num_entries++;
+  }
+}
+
+
+void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o, const int processor_i){
+  auto mem_write_vector = simulation_object->get_core(processor_i)->get_state()->log_mem_write;
+  #ifdef ENABLE_SIZE_ASSERTION
+  #warning size assertion enabled. checking at each simulation step.
+  if (unlikely(CMT_LOG_MEM_ITEM_DPI_WORDS != svSize(log_mem_write_o,2))){
+    // print UINT64T_W/DPI_W
+    std::cout << "UINT64T_W/DPI_W: " << UINT64T_W/DPI_W << std::endl;
+    // print FREGT_W/DPI_W
+    std::cout << "FREGT_W/DPI_W: " << FREGT_W/DPI_W << std::endl;
+    // print UINT8T_W/DPI_W
+    std::cout << "UINT8T_W/DPI_W: " << UINT8T_W/DPI_W << std::endl;
+    // print CMT_LOG_MEM_ITEM_DPI_WORDS
+    std::cout << "CMT_LOG_MEM_ITEM_DPI_WORDS: " << CMT_LOG_MEM_ITEM_DPI_WORDS << std::endl;
+    
+    std::cout << "svSize(log_mem_write_o,2): " << svSize(log_mem_write_o,2) << std::endl;
+    std::cout << "sizeof(unsigned char): " << sizeof(unsigned char) << std::endl;
+    std::cout << "sizeof(svBitVecVal): " << sizeof(svBitVecVal) << std::endl;
+    
+    exit(1);
+  }
+  #endif
+
+  int& num_entries = *inserted_elements_o;
+  num_entries = 0;
+
+  for (auto x: mem_write_vector){
+    commit_log_mem_item_t addr_wdata_len_tuple = {std::get<0>(x), std::get<1>(x), std::get<2>(x)};
+
+    commit_log_mem_item_t* awl_ptr = &addr_wdata_len_tuple;
+    svBitVecVal* part_ptr = (svBitVecVal*) awl_ptr;
+    for (int i = 0; i < CMT_LOG_MEM_ITEM_DPI_WORDS; i++, part_ptr++){
+      svPutBitArrElemVecVal(log_mem_write_o, part_ptr, num_entries, i);
+    }
+    num_entries++;
+  }
+}
+
+void wait_key()
+{
+  std::cout << "press any key to continue..." << std::endl;
+  std::cin.get();
+}
