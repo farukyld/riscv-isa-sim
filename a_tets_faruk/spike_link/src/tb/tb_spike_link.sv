@@ -17,6 +17,12 @@ module tb_spike_link;
 
 
   import "DPI-C" function void look_array(int array[]);
+  
+  typedef struct { // !!! !!! packed yazinca tersten pack'liyor !!!
+    int a;
+    int d;
+  } nonstd_type_t;
+  import "DPI-C" function void look_array_of_nonstd_type(nonstd_type_t array[]);
 
   nonstd_type_t array_of_nonstd_type [0:3];
   int array[0:3];
@@ -25,7 +31,19 @@ module tb_spike_link;
 
 
     $display("cosimulation started");
-   
+    $display("***************");
+    array[0] = 32'd123;
+    $display("verilog side: calling look_array");
+    look_array(array);
+    $display("vevrilog side: array element 0 after calling look_array: %0d", array[0]);
+
+    array_of_nonstd_type[0].a = 32'd123;
+    $display("verilog side: calling look_array_of_nonstd_type");
+    look_array_of_nonstd_type(array_of_nonstd_type);
+    $display("verilog side: array_of_nonstd_type element 0 after calling look_array_of_nonstd_type: %0d", array_of_nonstd_type[0].a);
+    $display("***************");
+
+
 
     init();
 
