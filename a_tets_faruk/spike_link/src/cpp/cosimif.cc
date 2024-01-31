@@ -1,18 +1,20 @@
-#include "../../obj_dir_tb_spike_link/tb_spike_link__Dpi.h"
+#include "cosimif.h" 
+#include "common.h"
+#include "spike__cosim_common_conf.h"
 #include "cosim_create_sim.h"
 #include "args_reader.h"
 #include "debug_header.h"
 
-#ifndef KEY_WIDTH
-#define KEY_WIDTH 64
+#ifndef KEY_W
+#define KEY_W sizeof(reg_t)*8
 #endif
 
-#ifndef VALUE_WIDTH
-#define VALUE_WIDTH 128
+#ifndef VALUE_W
+#define VALUE_W sizeof(freg_t)*8
 #endif
 
-#ifndef DPI_WIDTH
-#define DPI_WIDTH 32
+#ifndef DPI_W
+#define DPI_W sizeof(svBitVecVal)*8
 #endif
 
 sim_t *simulation_object;
@@ -87,48 +89,33 @@ svBit simulation_completed()
   return ((htif_t*)simulation_object)->exitcode_not_zero();
 }
 
-
-/// @brief for key and value arrays: packed dimension size: dim0; num entries: dim1; entry size in packets: dim2
-/// @param key_array the keys of the unordered_map is written to this array
-/// @param value_array the values of the unordered_map is written to this array in same order with keys written in the key_array
-/// @param num_entries_inserted is the output parameter to specify the caller how many elements are valid in the output
-void get_log_reg_write(const svOpenArrayHandle key_array, const svOpenArrayHandle value_array, int *num_entries_inserted)
+void private_get_log_reg_write(const svOpenArrayHandle log_reg_write_o, int* inserted_elements_o)
 {
   auto map_from_c_side = simulation_object->get_core(0)->get_state()->log_reg_write;
 
-  DEBUG_PRINT_WARN("burada iki tarafin boyutlari icin asertion konulabilir\n");
-
-#define NUM_ENTRIES (*num_entries_inserted)
-
-  NUM_ENTRIES = 0;
-  // Traversing an unordered map
-  for (auto x : map_from_c_side)
-  {
-    // x.first // 64 bit, int32 cinsinden 2 tane
-    // x.second // 128 bit, int32 cinsinden 4 tane
-    // key'i part part gonder
-    for (int part_ind = 0; part_ind < KEY_WIDTH / DPI_WIDTH; part_ind++)
-    {
-      // key_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.first)) + part_ind);
-      auto base_ptr = (uint32_t *)&(x.first);
-      svBitVec32 temp = base_ptr[part_ind];
-#ifndef DONT_USE_VERILATOR
-      svPutBitArrElemVecVal(key_array, &temp, NUM_ENTRIES, part_ind);
-#endif
-    }
-
-    // value'yu part part gonder
-    for (int part_ind = 0; part_ind < VALUE_WIDTH / DPI_WIDTH; part_ind++)
-    {
-      // value_array[NUM_ENTRIES][part_ind] = *(((uint32_t *)&(x.second)) + part_ind);
-      auto base_ptr = (uint32_t *)&(x.second);
-      svBitVec32 temp = base_ptr[part_ind];
-#ifndef DONT_USE_VERILATOR
-      svPutBitArrElemVecVal(value_array, &temp, NUM_ENTRIES, part_ind);
-#endif
-    }
-    NUM_ENTRIES++;
+#ifdef ENABLE_SIZE_ASSERTION
+#warning size assertion enabled. checking at each simulation step.
+  if (unlikely(CMT_LOG_REG_ITEM_DPI_WORDS != svSize(log_reg_write_o,2))){
+    std::cout << "sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal) != svSize(log_reg_write_o,2)" << std::endl;
+    std::cout << "sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal): " << sizeof(commit_log_reg_item_t)/sizeof(svBitVecVal) << std::endl;
+    std::cout << "svSize(log_reg_write_o,2): " << svSize(log_reg_write_o,2) << std::endl;
+    exit(1);
   }
+#endif
 
-#undef NUM_ENTRIES
+  int& num_entries = *inserted_elements_o;
+  num_entries = 0;
+  // log_reg_write_o'nun her bir elementi 192 bit. ilk 64 bit key, sonraki 128 bit value.
+  for (auto x: map_from_c_side){
+    commit_log_reg_item_t kvp = {x.first, x.second};
+    commit_log_reg_item_t* kvp_ptr = &kvp;
+    svBitVecVal* part_ptr = (svBitVecVal*) kvp_ptr;
+    for (int i = 0; i < CMT_LOG_REG_ITEM_DPI_WORDS; i++, part_ptr++){
+      svPutBitArrElemVecVal(log_reg_write_o, part_ptr, num_entries, i);
+    }
+    num_entries++;
+  }
 }
+
+extern void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* inserted_elements_o){}
+extern void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inserted_elements_o){}
