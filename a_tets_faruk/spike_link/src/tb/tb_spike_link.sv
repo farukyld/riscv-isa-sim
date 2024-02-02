@@ -1,8 +1,6 @@
 
 module tb_spike_link;
   import cosim_pkg::*;
-  localparam KEY_W   = XREG_W;
-  localparam VALUE_W = FREG_W;
 
 
   // freg_t verilog_side_data [reg_t];

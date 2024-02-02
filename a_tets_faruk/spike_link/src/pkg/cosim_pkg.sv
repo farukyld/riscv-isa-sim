@@ -1,30 +1,47 @@
 package cosim_pkg;
 
-  parameter int unsigned XREG_W = 64; // spike'tan dolayi sabit
-  parameter int unsigned FREG_W = 128; // spike'tan dolayi sabit
-  parameter DPI_W = 32; // svdpi.h'den dolayi sabit
+  parameter int unsigned CommitLogEntries = 16;
+  import cosim_constants_pkg::*;
+
+  /* cosim types/enums */
+  typedef basic_types_pkg::reg_t reg_t; // bunlari disariya gostermek istiyor muyum?
+  typedef basic_types_pkg::freg_t freg_t; // eger istemiyorsam sadece import yapmaliyim.
+  // typedef yapmamaliyim
+
+  import basic_types_pkg::dpi_word_t; // bunu disariya gostermek istemiyorum.
 
 
-  // -verilator asagidaki hatayi verdigi icin CommitLogEntries tanimladim
-  // -verilator: passing dynamic arrays to c function as argument not yet supported.
+  // register key type enum
+  // from riscv/decode_macros.h
+  typedef enum bit [REG_KEY_TYPE_W-1:0] {
+    XREG      = REG_KEY_TYPE_W'('b0000),
+    FREG      = REG_KEY_TYPE_W'('b0001),
+    VREG      = REG_KEY_TYPE_W'('b0010),
+    VREG_HINT = REG_KEY_TYPE_W'('b0011),
+    CSR       = REG_KEY_TYPE_W'('b0100)
+  } reg_key_type_e;
 
-  parameter int unsigned CommitLogEntries = 16; // degistirilebilir. 16'yi gecmeyecegini dusundum
+  typedef csr_ids_pkg::csr_id_e csr_id_e; // bunu disariya gostermek istiyorum.
 
+  // other ids are straightforward.
+  typedef union packed {
+    bit [REG_KEY_ID_W-1:0] int_float_vec;
+    csr_id_e csr;
+  } reg_id_t;
 
-  /*verilog tarafinda kullanilacak*/
-  typedef bit [XREG_W-1:0] reg_t; // +packed +2-state ?little endian?
-  typedef bit [FREG_W-1:0] freg_t;
 
   typedef struct packed {
-    bit [59:0] reg_id;
-    bit [3:0] reg_type; // low 4 bit.
+    reg_id_t reg_id;
+    reg_key_type_e reg_type; // low 4 bit.
     // packed olunca low 4 bit. unpacked olursa verilog std. herhangi bir yerde olabilir der.
-    // unpacked, hafizada duzenli yayilmak zorunda degil. 
+    // unpacked, hafizada duzenli yayilmak zorunda degil.
     // vverilator'de packed olunca low 4 bit. (olmasi gereken)
     // unpacked olunca high 4 bit. (std tarafindan zorunlu tutulmuyor)
   } key_parts_t;
-  
+
+
   typedef union packed {
+    // 64 bit key {60 bit id, 4 bit type}
     reg_t key;
     key_parts_t key_parts;
   } reg_key_t;
@@ -34,20 +51,13 @@ package cosim_pkg;
     reg_key_t key; // packed'in icinde unpacked koyamiyoruz, o reg_key_t union'u da packed.
     freg_t value;
   } commit_log_reg_item_t;
+
   
   typedef  struct packed {
     reg_t addr;
     reg_t wdata;
     byte  len;
   } commit_log_mem_item_t;
-  /**/
-
-
-  typedef int dpi_word_t;
-
-  parameter LOG_REG_WRITE_ITEM_DPI_WORDS = XREG_W/DPI_W + FREG_W/DPI_W;
-
-  parameter LOG_MEM_ITEM_INTS_DPI_WORDS = 2*XREG_W/DPI_W + 1;
 
   import "DPI-C" function void init();
 
@@ -55,26 +65,7 @@ package cosim_pkg;
 
   import "DPI-C" function bit simulation_completed();
 
-  import "DPI-C" function void private_get_log_reg_write(
-    output int log_reg_write_o [][LOG_REG_WRITE_ITEM_DPI_WORDS],
-    output int inserted_elements_o,
-    input int processor_i
-  );
-
-  import "DPI-C" function void private_get_log_mem_read(
-    output commit_log_mem_item_t log_mem_read_o[],
-    output int inserted_elements_o,
-    input int processor_i
-  );
-
-  import "DPI-C" function void private_get_log_mem_write(
-    output dpi_word_t log_mem_write_o [][],
-    output int inserted_elements_o,
-    input int processor_i
-  );
-
   import "DPI-C" function void wait_key();
-
 
   function void get_log_reg_write(
     output commit_log_reg_item_t log_reg_write_o[CommitLogEntries],
@@ -85,14 +76,14 @@ package cosim_pkg;
     dpi_word_t log_reg_write_from_c [CommitLogEntries][LOG_REG_WRITE_ITEM_DPI_WORDS];
     int n;
 
-    private_get_log_reg_write(log_reg_write_from_c, inserted_elements_o, 0);
-    
+    private_dpi_imports_pkg::private_get_log_reg_write(log_reg_write_from_c, inserted_elements_o, 0);
+
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_reg_write_itr
       log_reg_write_o[ii].key.key = pack_2x32_to64le(log_reg_write_from_c[ii][0:1]);
       log_reg_write_o[ii].value = pack_4x32_to128le(log_reg_write_from_c[ii][2:5]);
     end
   endfunction
-  
+
 
   function void get_log_mem_read(
     output commit_log_mem_item_t log_mem_read_o[CommitLogEntries],
@@ -100,10 +91,10 @@ package cosim_pkg;
   );
     // burda private_get_log_mem_read_from_c cagirilacak
     // ciktisi log_mem_read_o'ya yazilacak
-    dpi_word_t log_mem_read_from_c [CommitLogEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
+    dpi_word_t log_mem_read_from_c [CommitLogEntries][LOG_MEM_ITEM_DPI_WORDS];
     int n;
 
-    private_get_log_mem_read(log_mem_read_from_c, inserted_elements_o, 0);
+    private_dpi_imports_pkg::private_get_log_mem_read(log_mem_read_from_c, inserted_elements_o, 0);
 
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_mem_read_itr
       log_mem_read_o[ii].addr = pack_2x32_to64le(log_mem_read_from_c[ii][0:1]);
@@ -118,13 +109,13 @@ package cosim_pkg;
   function void get_log_mem_write(
     output commit_log_mem_item_t log_mem_write_o[CommitLogEntries],
     output int inserted_elements_o
-  ); 
+  );
     // burda private_get_log_mem_write_from_c cagirilacak
     // ciktisi log_mem_write_o'ya yazilacak
-    dpi_word_t log_mem_write_from_c [CommitLogEntries][LOG_MEM_ITEM_INTS_DPI_WORDS];
+    dpi_word_t log_mem_write_from_c [CommitLogEntries][LOG_MEM_ITEM_DPI_WORDS];
     int n;
 
-    private_get_log_mem_write(log_mem_write_from_c, inserted_elements_o, 0);
+    private_dpi_imports_pkg::private_get_log_mem_write(log_mem_write_from_c, inserted_elements_o, 0);
 
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_mem_write_itr
       log_mem_write_o[ii].addr = pack_2x32_to64le(log_mem_write_from_c[ii][0:1]);
@@ -157,9 +148,9 @@ package cosim_pkg;
     input int entry_count,
     input freg_t verilog_map [reg_t]
   );
-    int ii; 
+    int ii;
     for (ii = 0; ii < entry_count; ii = ii + 1) begin: comparison_itr
-      
+
     end
   endtask
 
