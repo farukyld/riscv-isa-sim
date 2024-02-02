@@ -16,7 +16,22 @@ package cosim_pkg;
   typedef bit [FREG_W-1:0] freg_t;
 
   typedef struct packed {
-    reg_t   key;
+    bit [59:0] reg_id;
+    bit [3:0] reg_type; // low 4 bit.
+    // packed olunca low 4 bit. unpacked olursa verilog std. herhangi bir yerde olabilir der.
+    // unpacked, hafizada duzenli yayilmak zorunda degil. 
+    // vverilator'de packed olunca low 4 bit. (olmasi gereken)
+    // unpacked olunca high 4 bit. (std tarafindan zorunlu tutulmuyor)
+  } key_parts_t;
+  
+  typedef union packed {
+    reg_t key;
+    key_parts_t key_parts;
+  } reg_key_t;
+
+
+  typedef struct packed {
+    reg_key_t key; // packed'in icinde unpacked koyamiyoruz, o reg_key_t union'u da packed.
     freg_t value;
   } commit_log_reg_item_t;
   
@@ -73,7 +88,7 @@ package cosim_pkg;
     private_get_log_reg_write(log_reg_write_from_c, inserted_elements_o, 0);
     
     for (int ii = 0; ii < inserted_elements_o; ii = ii + 1) begin: log_reg_write_itr
-      log_reg_write_o[ii].key = pack_2x32_to64le(log_reg_write_from_c[ii][0:1]);
+      log_reg_write_o[ii].key.key = pack_2x32_to64le(log_reg_write_from_c[ii][0:1]);
       log_reg_write_o[ii].value = pack_4x32_to128le(log_reg_write_from_c[ii][2:5]);
     end
   endfunction

@@ -1,4 +1,4 @@
-#include "cosimif.h" 
+#include "cosimif.h"
 #include "common.h"
 #include "spike__cosim_common_conf.h"
 #include "cosim_create_sim.h"
@@ -131,11 +131,11 @@ void private_get_log_mem_read(const svOpenArrayHandle log_mem_read_o, int* inser
     std::cout << "UINT8T_W/DPI_W: " << UINT8T_W/DPI_W << std::endl;
     // print CMT_LOG_MEM_ITEM_DPI_WORDS
     std::cout << "CMT_LOG_MEM_ITEM_DPI_WORDS: " << CMT_LOG_MEM_ITEM_DPI_WORDS << std::endl;
-    
+
     std::cout << "svSize(log_mem_read_o,2): " << svSize(log_mem_read_o,2) << std::endl;
     std::cout << "sizeof(unsigned char): " << sizeof(unsigned char) << std::endl;
     std::cout << "sizeof(svBitVecVal): " << sizeof(svBitVecVal) << std::endl;
-    
+
     exit(1);
   }
   #endif
@@ -169,11 +169,11 @@ void private_get_log_mem_write(const svOpenArrayHandle log_mem_write_o, int* ins
     std::cout << "UINT8T_W/DPI_W: " << UINT8T_W/DPI_W << std::endl;
     // print CMT_LOG_MEM_ITEM_DPI_WORDS
     std::cout << "CMT_LOG_MEM_ITEM_DPI_WORDS: " << CMT_LOG_MEM_ITEM_DPI_WORDS << std::endl;
-    
+
     std::cout << "svSize(log_mem_write_o,2): " << svSize(log_mem_write_o,2) << std::endl;
     std::cout << "sizeof(unsigned char): " << sizeof(unsigned char) << std::endl;
     std::cout << "sizeof(svBitVecVal): " << sizeof(svBitVecVal) << std::endl;
-    
+
     exit(1);
   }
   #endif
