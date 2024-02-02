@@ -968,6 +968,8 @@ void processor_t::disasm(insn_t insn)
   if (last_pc != state.pc || last_bits != bits) {
     std::stringstream s;  // first put everything in a string, later send it to output
 
+    // !!! mesela bir fonksiyon cagrildiysa, pc cagrilan fonksiyonun adresine esitse
+    // !!! symbol bu fonksiyonun ismi oluyor. elf'teki symbol ismi.
     const char* sym = get_symbol(state.pc);
     if (sym != nullptr)
     {

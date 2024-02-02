@@ -2362,6 +2362,14 @@ disassembler_t::disassembler_t(const isa_parser_t *isa)
 
 const disasm_insn_t* disassembler_t::probe_once(insn_t insn, size_t idx) const
 {
+  // !!! chain, array of vector of disasm_inst_t* of size 256
+  // yani 256 tane vector var
+  // her bir vectorun icinde disasm_inst_t*lar var
+  // hashtable size 256
+  // bucket'lar linked list.
+  // bu asagida idx'te verilen bucket'a bakiliyor.
+  // idx de ya hash(inst.bits(), MASK1) ya da hash(inst.bits(), MASK2) ya da HASH_SIZE oluyor.
+  
   for (auto it = chain[idx].rbegin(); it != chain[idx].rend(); ++it)
     if (*(*it) == insn)
       return *it;
