@@ -1,7 +1,7 @@
 
 
-// volatile long int tohost;
-// volatile long int fromhost;
+volatile long int tohost;
+volatile long int fromhost;
 
 #define SIZE 1000
 
@@ -39,4 +39,6 @@ void main()
     __asm(
         "nop\n"
         "nop\n");
+    
+    tohost = -1;
 }
