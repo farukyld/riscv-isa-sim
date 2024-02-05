@@ -19,7 +19,8 @@ LIBRARIES += /home/usr1/riscv-isa-sim/build_sim_modified/libspike_dasm.a
 # LIBRARIES += /home/usr1/riscv-isa-sim/build/libsoftfloat.so
 LIBRARIES += /home/usr1/riscv-isa-sim/build_sim_modified/libriscv.so
 
-# precompiled header'lar icin miydi bu asagidaki?
+INC_DIRS :=
+# sadece config.h icin. genel configuration, arch gibi.
 INC_DIRS := -I/home/usr1/riscv-isa-sim/build_sim_modified
 INC_DIRS += -I/home/usr1/riscv-isa-sim/riscv
 INC_DIRS += -I/home/usr1/riscv-isa-sim/fesvr
