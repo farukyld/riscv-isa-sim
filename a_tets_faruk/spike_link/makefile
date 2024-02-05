@@ -34,7 +34,7 @@ clean_$(1):
 	@find obj_dir_$(1) -type f ! -name "$(1)__Dpi.h" -exec rm -f {} +
 
 compile_$(1):
-	verilator -O2 -CFLAGS "$(INC_DIRS)" --Mdir obj_dir_$(1) --binary +1800-2017ext+sv $(SRC_FILES) $(TB_DIR)/$(1).sv $(CPP_FILES) $(OBJ_FILES) $(LIBRARIES) --prefix $(1)  -o $(1).exe
+	verilator -O2 -CFLAGS "$(INC_DIRS)" --Mdir obj_dir_$(1) --binary +1800-2017ext+sv $(SRC_FILES) $(TB_DIR)/$(1).sv $(CPP_FILES) $(LIBRARIES) --top $(1) --prefix $(1)  -o $(1).exe
 	@echo "--compilation done--"
 .PHONY: compile_$(1)
 
