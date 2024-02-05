@@ -33,11 +33,10 @@ argv_argc_t *read_args_from_file(const char *filename)
     FILE *file = fopen(filename, "r");
     if (!file)
     {
-        DEBUG_PRINT_WARN("Failed to open file %s\n", filename);
-        return NULL;
+        fprintf(stderr, __FILE__ ":%d: couldn't open file %s\n",__LINE__, filename);
+        exit(1);
     }
     DEBUG_PRINT_WARN("filename = %s, file pointer = %p\n", filename, file);
-    printf("reading args from file: %s\n", filename);
     // Read file content
     fseek(file, 0, SEEK_END);
     long length = ftell(file);
@@ -45,9 +44,9 @@ argv_argc_t *read_args_from_file(const char *filename)
     char *content = (char *)malloc(length + 1);
     if (!content)
     {
-        DEBUG_PRINT_WARN("couldn't allocate space to read file content\n");
+        fprintf(stderr, __FILE__ ":%d: couldn't allocate space for file content\n",__LINE__);
         fclose(file);
-        return NULL;
+        exit(1);
     }
     fread(content, 1, length, file);
     // print the content that is read from the file
@@ -64,9 +63,9 @@ argv_argc_t *read_args_from_file(const char *filename)
     char **argv = (char **)malloc(sizeof(char *) * argc);
     if (!argv)
     {
-        DEBUG_PRINT_WARN("couldn't allocate space for argv pointers\n");
+        fprintf(stderr, __FILE__ ":%d: couldn't allocate space for argv\n",__LINE__);
         free(content);
-        return NULL;
+        exit(1);
     }
 
     // Parse arguments
@@ -87,6 +86,7 @@ argv_argc_t *read_args_from_file(const char *filename)
             free(argv[j]);
         free(argv);
         free(content);
+        fprintf(stderr, __FILE__ ":%d: couldn't allocate space for args\n",__LINE__);
         return NULL;
     }
     args->argc = argc;

@@ -5,17 +5,6 @@
 #include "args_reader.h"
 #include "debug_header.h"
 
-#ifndef KEY_W
-#define KEY_W sizeof(reg_t)*8
-#endif
-
-#ifndef VALUE_W
-#define VALUE_W sizeof(freg_t)*8
-#endif
-
-#ifndef DPI_W
-#define DPI_W sizeof(svBitVecVal)*8
-#endif
 
 sim_t *simulation_object;
 
@@ -31,7 +20,10 @@ std::function<void(reg_t)> fromhost_callback;
 
 void init()
 {
-  auto argc_argv = read_args_from_file("/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/log/args.txt");
+  auto filename = "/home/usr1/riscv-isa-sim/a_tets_faruk/spike_link/log/args.txt";
+  printf(__FILE__ ":%d: reading args from file: %s\n", __LINE__, filename);
+
+  auto argc_argv = read_args_from_file(filename);
 
   simulation_object = create_sim_with_args(argc_argv->argc, argc_argv->argv);
 
