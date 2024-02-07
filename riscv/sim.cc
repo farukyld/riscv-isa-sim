@@ -236,6 +236,208 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
   }
 }
 
+
+sim_t::sim_t(const cfg_t *cfg, bool halted,
+             std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
+             std::vector<const device_factory_t*> plugin_device_factories,
+             const std::vector<std::string>& args,
+             const debug_module_config_t &dm_config,
+             const char *log_path,
+             bool dtb_enabled, const char *dtb_file,
+             bool socket_enabled,
+             FILE *cmd_file) // needed for command line option --cmd
+  : htif_t(args),
+    isa(cfg->isa(), cfg->priv()),
+    cfg(cfg),
+    mems(mems),
+    procs(std::max(cfg->nprocs(), size_t(1))),
+    dtb_enabled(dtb_enabled),
+    log_file(log_path),
+    cmd_file(cmd_file),
+    sout_(nullptr),
+    current_step(0),
+    current_proc(0),
+    debug(false),
+    histogram_enabled(false),
+    log(false),
+    remote_bitbang(NULL),
+    debug_module(this, dm_config)
+{
+  signal(SIGINT, &handle_signal);
+
+  sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
+
+  for (auto& x : mems)
+    bus.add_device(x.first, x.second);
+
+  bus.add_device(DEBUG_START, &debug_module);
+
+  socketif = NULL;
+#ifdef HAVE_BOOST_ASIO
+  if (socket_enabled) {
+    socketif = new socketif_t();
+  }
+#else
+  if (socket_enabled) {
+    fputs("Socket support requires compilation with boost asio; "
+          "please rebuild the riscv-isa-sim project using "
+          "\"configure --with-boost-asio\".\n",
+          stderr);
+    abort();
+  }
+#endif
+
+#ifndef RISCV_ENABLE_DUAL_ENDIAN
+  if (cfg->endianness != endianness_little) {
+    fputs("Big-endian support has not been prroperly enabled; "
+          "please rebuild the riscv-isa-sim project using "
+          "\"configure --enable-dual-endian\".\n",
+          stderr);
+    abort();
+  }
+#endif
+
+  debug_mmu = new mmu_t(this, cfg->endianness, NULL);
+
+  for (size_t i = 0; i < cfg->nprocs(); i++) {
+    procs[i] = new processor_t(&isa, cfg, this, cfg->hartids()[i], halted,
+                               log_file.get(), sout_);
+    harts[cfg->hartids()[i]] = procs[i];
+  }
+
+  // When running without using a dtb, skip the fdt-based configuration steps
+  if (!dtb_enabled) return;
+
+  // Only make a CLINT (Core-Local INTerrupt controller) and PLIC (Platform-
+  // Level-Interrupt-Controller) if they are specified in the device tree
+  // configuration.
+  //
+  // This isn't *quite* as general as we could get (because you might have one
+  // that's not bus-accessible), but it should handle the normal use cases. In
+  // particular, the default device tree configuration that you get without
+  // setting the dtb_file argument has one.
+  std::vector<const device_factory_t*> device_factories = {
+    clint_factory, // clint must be element 0
+    plic_factory, // plic must be element 1
+    ns16550_factory};
+  device_factories.insert(device_factories.end(),
+                          plugin_device_factories.begin(),
+                          plugin_device_factories.end());
+
+  // Load dtb_file if provided, otherwise self-generate a dts/dtb
+  if (dtb_file) {
+    std::ifstream fin(dtb_file, std::ios::binary);
+    if (!fin.good()) {
+      std::cerr << "can't find dtb file: " << dtb_file << std::endl;
+      exit(-1);
+    }
+    std::stringstream strstream;
+    strstream << fin.rdbuf();
+    dtb = strstream.str();
+  } else {
+    std::pair<reg_t, reg_t> initrd_bounds = cfg->initrd_bounds();
+    std::string device_nodes;
+    for (const device_factory_t *factory : device_factories)
+      device_nodes.append(factory->generate_dts(this));
+    dts = make_dts(INSNS_PER_RTC_TICK, CPU_HZ,
+                   initrd_bounds.first, initrd_bounds.second,
+                   cfg->bootargs(), cfg->pmpregions, cfg->pmpgranularity,
+                   procs, mems, device_nodes);
+    dtb = dts_compile(dts);
+  }
+
+  int fdt_code = fdt_check_header(dtb.c_str());
+  if (fdt_code) {
+    std::cerr << "Failed to read DTB from ";
+    if (!dtb_file) {
+      std::cerr << "auto-generated DTS string";
+    } else {
+      std::cerr << "`" << dtb_file << "'";
+    }
+    std::cerr << ": " << fdt_strerror(fdt_code) << ".\n";
+    exit(-1);
+  }
+
+  void *fdt = (void *)dtb.c_str();
+
+  for (size_t i = 0; i < device_factories.size(); i++) {
+    const device_factory_t *factory = device_factories[i];
+    reg_t device_base = 0;
+    abstract_device_t* device = factory->parse_from_fdt(fdt, this, &device_base);
+    if (device) {
+      assert(device_base);
+      std::shared_ptr<abstract_device_t> dev_ptr(device);
+      add_device(device_base, dev_ptr);
+
+      if (i == 0) // clint_factory
+        clint = std::static_pointer_cast<clint_t>(dev_ptr);
+      else if (i == 1) // plic_factory
+        plic = std::static_pointer_cast<plic_t>(dev_ptr);
+    }
+  }
+
+  //per core attribute
+  int cpu_offset = 0, rc;
+  size_t cpu_idx = 0;
+  cpu_offset = fdt_get_offset(fdt, "/cpus");
+  if (cpu_offset < 0)
+    return;
+
+  for (cpu_offset = fdt_get_first_subnode(fdt, cpu_offset); cpu_offset >= 0;
+       cpu_offset = fdt_get_next_subnode(fdt, cpu_offset)) {
+
+    if (cpu_idx >= nprocs())
+      break;
+
+    //handle pmp
+    reg_t pmp_num, pmp_granularity;
+    if (fdt_parse_pmp_num(fdt, cpu_offset, &pmp_num) != 0)
+      pmp_num = 0;
+    procs[cpu_idx]->set_pmp_num(pmp_num);
+
+    if (fdt_parse_pmp_alignment(fdt, cpu_offset, &pmp_granularity) == 0) {
+      procs[cpu_idx]->set_pmp_granularity(pmp_granularity);
+    }
+
+    //handle mmu-type
+    const char *mmu_type;
+    rc = fdt_parse_mmu_type(fdt, cpu_offset, &mmu_type);
+    if (rc == 0) {
+      procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SBARE);
+      if (strncmp(mmu_type, "riscv,sv32", strlen("riscv,sv32")) == 0) {
+        procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SV32);
+      } else if (strncmp(mmu_type, "riscv,sv39", strlen("riscv,sv39")) == 0) {
+        procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SV39);
+      } else if (strncmp(mmu_type, "riscv,sv48", strlen("riscv,sv48")) == 0) {
+        procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SV48);
+      } else if (strncmp(mmu_type, "riscv,sv57", strlen("riscv,sv57")) == 0) {
+        procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SV57);
+      } else if (strncmp(mmu_type, "riscv,sbare", strlen("riscv,sbare")) == 0) {
+        //has been set in the beginning
+      } else {
+        std::cerr << "core ("
+                  << cpu_idx
+                  << ") has an invalid 'mmu-type': "
+                  << mmu_type << ").\n";
+        exit(1);
+      }
+    } else {
+      procs[cpu_idx]->set_mmu_capability(IMPL_MMU_SBARE);
+    }
+
+    cpu_idx++;
+  }
+
+  if (cpu_idx != nprocs()) {
+      std::cerr << "core number in dts ("
+                <<  cpu_idx
+                << ") doesn't match it in command line ("
+                << nprocs() << ").\n";
+      exit(1);
+  }
+}
+
+
 sim_t::~sim_t()
 {
   for (size_t i = 0; i < procs.size(); i++)

@@ -25,6 +25,7 @@ class socketif_t;
 class sim_t : public htif_t, public simif_t
 {
 public:
+  // used by ../../cosim/cosim_create_sim.cc
   sim_t(const cfg_t *cfg, bool halted,
         std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
         std::vector<const device_factory_t*> plugin_device_factories,
@@ -33,6 +34,16 @@ public:
         bool dtb_enabled, const char *dtb_file,
         bool socket_enabled, bool disable_interactive,
         FILE *cmd_file); // needed for command line option --cmd
+  
+  // used by ../spike_main/spike.cc
+  sim_t(const cfg_t *cfg, bool halted,
+        std::vector<std::pair<reg_t, abstract_mem_t*>> mems,
+        std::vector<const device_factory_t*> plugin_device_factories,
+        const std::vector<std::string>& args,
+        const debug_module_config_t &dm_config, const char *log_path,
+        bool dtb_enabled, const char *dtb_file,
+        bool socket_enabled,
+        FILE *cmd_file);
   ~sim_t();
 
   // run the simulation to completion
