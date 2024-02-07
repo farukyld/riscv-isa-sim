@@ -152,11 +152,7 @@ std::map<std::string, uint64_t> htif_t::load_payload(const std::string& payload,
 
 void htif_t::load_program()
 {
-  // !!! sunuma ekle. gerek yok
   std::map<std::string, uint64_t> symbols = load_payload(targs[0], &entry);
-  #if DEBUG_LEVEL >= DEBUG_WARN
-  std::cout << "targs[0]: " << targs[0] << " entry: " << entry << std::endl;
-  #endif
   if (symbols.count("tohost") && symbols.count("fromhost")) {
     tohost_addr = symbols["tohost"];
     fromhost_addr = symbols["fromhost"];
@@ -275,7 +271,6 @@ int htif_t::run()
 
     // !!! to host diye bir mesaj okunup sifirlaniyor
     try {
-    // tohost, printf kismi.
       if ((tohost = from_target(mem.read_uint64(tohost_addr))) != 0)
         mem.write_uint64(tohost_addr, target_endian<uint64_t>::zero);
     } catch (mem_trap_t& t) {
