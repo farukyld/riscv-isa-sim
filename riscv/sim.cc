@@ -42,7 +42,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
              const debug_module_config_t &dm_config,
              const char *log_path,
              bool dtb_enabled, const char *dtb_file,
-             bool socket_enabled,
+             bool socket_enabled, bool disable_interactive,
              FILE *cmd_file) // needed for command line option --cmd
   : htif_t(args),
     isa(cfg->isa(), cfg->priv()),
@@ -61,7 +61,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     remote_bitbang(NULL),
     debug_module(this, dm_config)
 {
-  signal(SIGINT, &handle_signal);
+  if (!disable_interactive)
+    signal(SIGINT, &handle_signal);
 
   sout_.rdbuf(std::cerr.rdbuf()); // debug output goes to stderr by default
 
