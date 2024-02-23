@@ -308,11 +308,17 @@ void processor_t::step(size_t n)
     }
     catch(trap_t& t)
     {
+      std::cout << __FILE__ ":" << __LINE__ << ": caught trap_t: " << t.cause() << "\n";
       take_trap(t, pc);
       n = instret;
 
       // Trigger action takes priority over single step
       auto match = TM.detect_trap_match(t);
+      std::cout << __FILE__ ":" << __LINE__ << ": match.has_value(): " << match.has_value() << "\n";
+      if (match.has_value())
+      {
+        std::cout << "match.action: " << match->action << std::endl;
+      }
       if (match.has_value())
         take_trigger_action(match->action, 0, state.pc, 0);
       else if (unlikely(state.single_step == state.STEP_STEPPED)) {
@@ -322,6 +328,8 @@ void processor_t::step(size_t n)
     }
     catch (triggers::matched_t& t)
     {
+      std::cout << __FILE__ ":" << __LINE__ << ": caught triggers::matched_t: " << t.action << "\n";
+
       if (mmu->matched_trigger) {
         delete mmu->matched_trigger;
         mmu->matched_trigger = NULL;
@@ -330,10 +338,12 @@ void processor_t::step(size_t n)
     }
     catch(trap_debug_mode&)
     {
+      std::cout << __FILE__ ":" << __LINE__ << ": caught trap_debug_mode\n";
       enter_debug_mode(DCSR_CAUSE_SWBP);
     }
     catch (wait_for_interrupt_t &t)
     {
+      std::cout << __FILE__ ":" << __LINE__ << ": caught wait_for_interrupt_t\n";
       // Return to the outer simulation loop, which gives other devices/harts a
       // chance to generate interrupts.
       //

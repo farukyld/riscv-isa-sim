@@ -455,7 +455,7 @@ void sim_t::interactive_priv(const std::string& cmd, const std::vector<std::stri
 
   processor_t *p = get_core(args[0]);
   std::ostream out(sout_.rdbuf());
-  out << p->get_privilege_string() << std::endl;
+  out << p->get_privilege_string() << (p->get_state()->debug_mode ? "D:1":"D:0" )<< std::endl;
 }
 
 reg_t sim_t::get_reg(const std::vector<std::string>& args)
