@@ -463,7 +463,15 @@ void syscall_t::dispatch(reg_t mm)
   memif->read(mm, sizeof(magicmem), magicmem);
 
   reg_t n = htif->from_target(magicmem[0]);
-  // std::cout << " syscall_proxy.table[" << n << "] is being called" << std::endl;
+  std::cout << " syscall_proxy.table[" << n << "] is being called" << std::endl;
+  if (n == 93){
+    std::cout << __FILE__ ":" << __LINE__ << ": magicmem: (from_le ile)\n";
+    for (int i = 0; i < 8; i++)
+      std::cout << "  magicmem[" << i << "] = " << magicmem[i].from_le() << std::endl;  
+    std::cout << __FILE__ ":" << __LINE__ << ": magicmem: (from_be ile)\n";
+    for (int i = 0; i < 8; i++)
+      std::cout << "  magicmem[" << i << "] = " << magicmem[i].from_be() << std::endl;
+  }
 
   if (n >= table.size() || !table[n])
     throw std::runtime_error("bad syscall #" + std::to_string(n));

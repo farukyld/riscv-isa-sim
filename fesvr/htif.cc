@@ -279,7 +279,13 @@ int htif_t::run()
 
     try {
       if (tohost != 0) {
-        // std::cout << "faruk: tohost: " << tohost << std::endl;
+        std::cout << "faruk: tohost: " << tohost << std::endl;
+        if (const char* symbol_pointed_by_tohost = get_symbol(tohost)){
+          std::cout << __FILE__ ":"<<__LINE__<<": " << "tohost: " << tohost << " points to: " << symbol_pointed_by_tohost << std::endl;
+        } else {
+          std::cout << __FILE__ ":"<<__LINE__<<": " << "tohost: " << tohost << " points to: " << "unknown symbol" << std::endl;
+        }
+        
         command_t cmd(mem, tohost, fromhost_callback);
         device_list.handle_command(cmd);
       } else {
