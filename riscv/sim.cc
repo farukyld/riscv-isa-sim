@@ -570,16 +570,10 @@ void sim_t::set_rom()
 {
   const int reset_vec_size = 8;
 
-// bu asagidakini cfg degisiyor mu diye bakmak icin koymustum
-// start_pc yanlis deger hatasi icin
-#if DEBUG_LEVEL >= DEBUG_WARN
-  std::cout << __FILE__<<":"<<__LINE__<< " object at:" << this << 
-  " sim.cfg.startpc.hasval: " << get_cfg().start_pc.has_value() << std::endl;
-#endif
 
   reg_t start_pc = cfg->start_pc.value_or(get_entry_point());
   uint64_t val =(uint64_t) start_pc;
-  std::cout  << "sim.cc/ sim_t::set_rom()/ start pc val: " << val << std::endl;
+  std::cout  <<  "sim.cc/ sim_t::set_rom()/ start pc val: " << val << std::endl;
 
   uint32_t reset_vec[reset_vec_size] = {
     0x297,                                      // auipc  t0,0x0

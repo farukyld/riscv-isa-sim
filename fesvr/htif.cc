@@ -248,10 +248,10 @@ int htif_t::run()
 
   auto enq_func = [](std::queue<reg_t>* q, uint64_t x) { q->push(x); };
   std::queue<reg_t> fromhost_queue;
-  // !!! fromhost_calback is an std::function that takes a reg_t and returns void
-  // first argument is bind to fromhost_queue
-  // second argument is a placeholder for the reg_t argument of fromhost_callback
-  // caller passes an actual argument to the first (_1) argument of the bind function
+  // !!! fromhost_calback bir std::function. reg_t parametre alip void donduruyor.
+  // asagida
+  // enq_func’in ilk parametresi fromhost_queue’ya baglaniyor.
+  // 2. parametresi fromhost_callback’in 1. (_1’den dolayi) parametresi icin bir placeholder
   std::function<void(reg_t)> fromhost_callback =
     std::bind(enq_func, &fromhost_queue, std::placeholders::_1);
   // !!! yani fromhost_callback, fromhost_queue'ye
