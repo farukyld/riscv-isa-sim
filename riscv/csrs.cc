@@ -25,7 +25,9 @@ csr_t::csr_t(processor_t* const proc, const reg_t addr):
   proc(proc),
   state(proc->get_state()),
   address(addr),
+  // !!! 11_0000_0000
   csr_priv(get_field(addr, 0x300)),
+  // 1100_0000_0000
   csr_read_only(get_field(addr, 0xC00) == 3) {
 }
 
