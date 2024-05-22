@@ -396,7 +396,12 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   csrmap[CSR_HTVAL] = htval = std::make_shared<basic_csr_t>(proc, CSR_HTVAL, 0);
   csrmap[CSR_HTINST] = htinst = std::make_shared<basic_csr_t>(proc, CSR_HTINST, 0);
   csrmap[CSR_HGATP] = hgatp = std::make_shared<hgatp_csr_t>(proc, CSR_HGATP);
+  // !!!
+  // std::make_shared<Type> Type ile belirtilen sinifin kurucu argumanlarini aliyor.
+  // proc=proc, address=CSR_MSTATUS, mstatus=mstatus
+  // nonvirtual_sstatus, mstatus'un proxy'si
   nonvirtual_sstatus = std::make_shared<sstatus_proxy_csr_t>(proc, CSR_SSTATUS, mstatus);
+  // vsstatus sanki kendi basina ayri gibi.
   csrmap[CSR_VSSTATUS] = vsstatus = std::make_shared<vsstatus_csr_t>(proc, CSR_VSSTATUS);
   csrmap[CSR_SSTATUS] = sstatus = std::make_shared<sstatus_csr_t>(proc, nonvirtual_sstatus, vsstatus);
 

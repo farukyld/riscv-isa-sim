@@ -36,13 +36,19 @@ void csr_t::verify_permissions(insn_t insn, bool write) const {
   // privileges are insufficient, and the CSR belongs to supervisor or
   // hypervisor. Raise illegal-instruction exception otherwise.
   unsigned priv = state->prv == PRV_S && !state->v ? PRV_HS : state->prv;
+  // !!! PRV_HS aslinda hipervisor mode demek. guclendirilmis supervisor olarak da dusunulebilir.
+  // eger state supervisor'sa ve sanallasttirilmis degilse (sanallastirilmis demek bir hipervisor uzerinde kosuyor demek)
+  // aslinda hipervisor (hipervisor supervisor) modunda calisiyor demektir.
 
+  // burada, csr_priv, asagidaki privilege'i istiyor ama bu extension (H yada S) aktiflestirilmemis ise illegal instruction hatasi veriyor.
   if ((csr_priv == PRV_S && !proc->extension_enabled('S')) ||
       (csr_priv == PRV_HS && !proc->extension_enabled('H')))
     throw trap_illegal_instruction(insn.bits());
 
   if (write && csr_read_only)
     throw trap_illegal_instruction(insn.bits());
+
+  // burada privilege yeterli degilse virtual instruction hatasi veya illegal instruction hatasi veriyor.
   if (priv < csr_priv) {
     if (state->v && csr_priv <= PRV_HS)
       throw trap_virtual_instruction(insn.bits());
@@ -64,6 +70,7 @@ void csr_t::log_write() const noexcept {
   log_special_write(address, written_value());
 }
 
+// !!! state log commit'e kaydediyor.
 void csr_t::log_special_write(const reg_t UNUSED address, const reg_t UNUSED val) const noexcept {
   if (proc->get_log_commits_enabled())
     proc->get_state()->log_reg_write[((address) << 4) | 4] = {val, 0};
@@ -881,7 +888,7 @@ bool medeleg_csr_t::unlogged_write(const reg_t val) noexcept {
     | (1 << CAUSE_BREAKPOINT)
     | (1 << CAUSE_MISALIGNED_LOAD)
     | (1 << CAUSE_LOAD_ACCESS)
-    | (1 << CAUSE_MISALIGNED_STORE) 
+    | (1 << CAUSE_MISALIGNED_STORE)
     | (1 << CAUSE_STORE_ACCESS)
     | (1 << CAUSE_USER_ECALL)
     | (1 << CAUSE_SUPERVISOR_ECALL)
@@ -956,6 +963,7 @@ reg_t base_atp_csr_t::compute_new_satp(reg_t val) const noexcept {
   reg_t rv64_ppn_mask = (reg_t(1) << (MAX_PADDR_BITS - PGSHIFT)) - 1;
 
   reg_t mode_mask = proc->get_xlen() == 32 ? SATP32_MODE : SATP64_MODE;
+  // !!! asid : adress space identifier
   reg_t asid_mask_if_enabled = proc->get_xlen() == 32 ? SATP32_ASID : SATP64_ASID;
   reg_t asid_mask = proc->supports_impl(IMPL_MMU_ASID) ? asid_mask_if_enabled : 0;
   reg_t ppn_mask = proc->get_xlen() == 32 ? SATP32_PPN : SATP64_PPN & rv64_ppn_mask;
@@ -971,6 +979,7 @@ satp_csr_t::satp_csr_t(processor_t* const proc, const reg_t addr):
 
 void satp_csr_t::verify_permissions(insn_t insn, bool write) const {
   base_atp_csr_t::verify_permissions(insn, write);
+  // !!! tvm: trap virtual memory
   if (get_field(state->mstatus->read(), MSTATUS_TVM))
     require(state->prv == PRV_M);
 }
@@ -1066,8 +1075,15 @@ reg_t time_counter_csr_t::read() const noexcept {
     return shadow_val;
 }
 
+// !!! htimedelta -> basic_csr_t
+// stimecmp -> stimecmp_csr_t
+// vstimecmp -> stimecmp_csr_t
+// virtualized_stimecmp -> virtualized_stimecmp_csr_t -> virtualized_csr_t
+// time -> time_counter_csr_t
+
 void time_counter_csr_t::sync(const reg_t val) noexcept {
   shadow_val = val;
+  // sstc: supervisor time compare extension.
   if (proc->extension_enabled(EXT_SSTC)) {
     const reg_t mip_val = (shadow_val >= state->stimecmp->read() ? MIP_STIP : 0) |
       (shadow_val + state->htimedelta->read() >= state->vstimecmp->read() ? MIP_VSTIP : 0);
@@ -1106,15 +1122,26 @@ counter_proxy_csr_t::counter_proxy_csr_t(processor_t* const proc, const reg_t ad
   proxy_csr_t(proc, addr, delegate) {
 }
 
+
+
 bool counter_proxy_csr_t::myenable(csr_t_p counteren) const noexcept {
+  // !!! proxy counter'in adresi ile karsilik geldigi counter'in enable biti arasinda bir iliski var.
+  // adres'i 5'b11_111 ile and'leyince counteren register'inin kacinci bitine bakmamiz gerektigine karar veriyoruz.
+  // myenable demek su demek: benim enable bitim 1 mi?
   return 1 & (counteren->read() >> (address & 31));
 }
 
 void counter_proxy_csr_t::verify_permissions(insn_t insn, bool write) const {
   proxy_csr_t::verify_permissions(insn, write);
 
+  // privilege machine level'den kucukse, machine counter enable ilgili biti 1 olmali.
   const bool mctr_ok = (state->prv < PRV_M) ? myenable(state->mcounteren) : true;
+
+  // !!! virtualization varsa (hipervisor modu kullanimda ise), hypervisor counter enable biti 1 olmali.
+  // burada neden state->prv < PRV_H kontrol etmemis? sunun icin mi: hipervisor veya machine mod'da virtualizasyon zaten yok!!!
   const bool hctr_ok = state->v ? myenable(state->hcounteren) : true;
+
+  // s durumundaysak sconteren register'inin ilgili biti 1 olmali.
   const bool sctr_ok = (proc->extension_enabled('S') && state->prv < PRV_S) ? myenable(state->scounteren) : true;
 
   if (!mctr_ok)
@@ -1166,6 +1193,7 @@ hgatp_csr_t::hgatp_csr_t(processor_t* const proc, const reg_t addr):
 
 void hgatp_csr_t::verify_permissions(insn_t insn, bool write) const {
   basic_csr_t::verify_permissions(insn, write);
+  // !!! TVM: trap virtual memory
   if (!state->v && get_field(state->mstatus->read(), MSTATUS_TVM))
      require_privilege(PRV_M);
 }
@@ -1175,8 +1203,11 @@ bool hgatp_csr_t::unlogged_write(const reg_t val) noexcept {
 
   reg_t mask;
   if (proc->get_const_xlen() == 32) {
+    // !!! 32 bitlik mimariyse 32 bit ppn, 
+    // ve 32 bit tp mod mask'leri, ve mmu vmid destegi varsa vmid mask'i birlestirilir.
     mask = HGATP32_PPN |
         HGATP32_MODE |
+        // vmid: virtual machine id
         (proc->supports_impl(IMPL_MMU_VMID) ? HGATP32_VMID : 0);
   } else {
     mask = (HGATP64_PPN & ((reg_t(1) << (MAX_PADDR_BITS - PGSHIFT)) - 1)) |
@@ -1188,7 +1219,9 @@ bool hgatp_csr_t::unlogged_write(const reg_t val) noexcept {
         (proc->supports_impl(IMPL_MMU_SV57) && get_field(val, HGATP64_MODE) == HGATP_MODE_SV57X4))
       mask |= HGATP64_MODE;
   }
-  mask &= ~(reg_t)3;
+  mask &= ~(reg_t)3; // !!! ?
+
+  // bu asagida da mask'in 1 oldugu yerleri degistir, 0 oldugu yerleri koru.
   return basic_csr_t::unlogged_write((read() & ~mask) | (val & mask));
 }
 

@@ -52,6 +52,7 @@ class csr_t {
 
   // What value was written to this reg? Default implementation simply
   // calls read(), but a few CSRs are special.
+  // !!! bazilarinda ms32 bit, bazilarinda ls32 bit, wide_counter_csr_t'de value+1
   virtual reg_t written_value() const noexcept;
 
   processor_t* const proc;
@@ -158,7 +159,6 @@ typedef std::shared_ptr<mseccfg_csr_t> mseccfg_csr_t_p;
 // Example: sscratch and vsscratch are both instances of basic_csr_t.
 // The csrmap will contain a virtualized_csr_t under sscratch's
 // address, plus the vsscratch basic_csr_t under its address.
-
 class virtualized_csr_t: public csr_t {
  public:
   virtualized_csr_t(processor_t* const proc, csr_t_p orig, csr_t_p virt);
@@ -364,7 +364,7 @@ class mip_or_mie_csr_t: public csr_t {
 class mip_csr_t: public mip_or_mie_csr_t {
  public:
   mip_csr_t(processor_t* const proc, const reg_t addr);
-
+  // !!! onemli bir nokta.
   // Does not log. Used by external things (clint) that wiggle bits in mip.
   void backdoor_write_with_mask(const reg_t mask, const reg_t val) noexcept;
  private:
@@ -493,6 +493,7 @@ class henvcfg_csr_t final: public envcfg_csr_t {
 class base_atp_csr_t: public basic_csr_t {
  public:
   base_atp_csr_t(processor_t* const proc, const reg_t addr);
+  // satp modunu ayarlamak istiyorsan (sv32, sv39, sv48, sv57, ) procesor'un (mmu) bunu destekliyor mu? 
   bool satp_valid(reg_t val) const noexcept;
  protected:
   virtual bool unlogged_write(const reg_t val) noexcept override;
@@ -520,6 +521,8 @@ class virtualized_satp_csr_t: public virtualized_csr_t {
 
 // Forward declaration
 class smcntrpmf_csr_t;
+// supervisor machine counter privilege mode filter extension 
+// (mcyclecfg, minstretcfg hangi modlarda yurutulen buyruklar sayiya dahil olacak)
 typedef std::shared_ptr<smcntrpmf_csr_t> smcntrpmf_csr_t_p;
 
 // For minstret and mcycle, which are always 64 bits, but in RV32 are
@@ -588,6 +591,7 @@ class counter_proxy_csr_t: public proxy_csr_t {
   bool myenable(csr_t_p counteren) const noexcept;
 };
 
+// cycle, time, instret, harici event counter'lar
 class mevent_csr_t: public basic_csr_t {
  public:
   mevent_csr_t(processor_t* const proc, const reg_t addr);
@@ -610,6 +614,7 @@ class hideleg_csr_t: public masked_csr_t {
   csr_t_p mideleg;
 };
 
+// hipervisor guest address translation protection
 class hgatp_csr_t: public basic_csr_t {
  public:
   hgatp_csr_t(processor_t* const proc, const reg_t addr);
@@ -618,6 +623,7 @@ class hgatp_csr_t: public basic_csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
 };
 
+// debug/trace trigger register select
 class tselect_csr_t: public basic_csr_t {
  public:
   tselect_csr_t(processor_t* const proc, const reg_t addr);
@@ -625,6 +631,7 @@ class tselect_csr_t: public basic_csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
 };
 
+// debug/trace trigger data register 1
 class tdata1_csr_t: public csr_t {
  public:
   tdata1_csr_t(processor_t* const proc, const reg_t addr);
@@ -633,6 +640,7 @@ class tdata1_csr_t: public csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
 };
 
+// debug/trace trigger data register 2
 class tdata2_csr_t: public csr_t {
  public:
   tdata2_csr_t(processor_t* const proc, const reg_t addr);
@@ -641,6 +649,7 @@ class tdata2_csr_t: public csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
 };
 
+// debug/trace trigger data register 3
 class tdata3_csr_t: public csr_t {
  public:
   tdata3_csr_t(processor_t* const proc, const reg_t addr);
@@ -832,6 +841,7 @@ class sscsrind_reg_csr_t : public csr_t {
 
 // smcntrpmf_csr_t caches the previous state of the CSR in case a CSRW instruction
 // modifies the state that should not be immediately visible to bump()
+// !!! mcycle ve minstret'te kullaniliyor
 class smcntrpmf_csr_t : public masked_csr_t {
  public:
   smcntrpmf_csr_t(processor_t* const proc, const reg_t addr, const reg_t mask, const reg_t init);
