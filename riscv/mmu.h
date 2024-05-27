@@ -138,11 +138,20 @@ public:
 
   template<typename T>
   void ALWAYS_INLINE store(reg_t addr, T val, xlate_flags_t xlate_flags = {false, false, false}) {
+
+    // virtual page number
     reg_t vpn = addr >> PGSHIFT;
+
+    // adres, yazmak istedigimizin turuyle hizali mi
     bool aligned = (addr & (sizeof(T) - 1)) == 0;
+
+    // tlb tag'i tlb'de mevcut mu
     bool tlb_hit = tlb_store_tag[vpn % TLB_ENTRIES] == vpn;
 
+    // 
     if (!xlate_flags.is_special_access() && likely(aligned && tlb_hit)) {
+      // !!! burada paddr su mu?:
+      // tlb_data[vpn % TLB_ENTRIES].host_offset + addr
       *(target_endian<T>*)(tlb_data[vpn % TLB_ENTRIES].host_offset + addr) = to_target(val);
     } else {
       target_endian<T> target_val = to_target(val);
