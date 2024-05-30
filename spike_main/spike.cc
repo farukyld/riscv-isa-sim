@@ -450,10 +450,7 @@ int main(int argc, char** argv)
                 [&](const char UNUSED *s){log_commits = true;});
   parser.option(0, "log-paddr-only", 0,
                 [&](const char UNUSED *s){log_paddr_only = true;});
-  parser.option(0, "log-vaddr-paddr", 0, [&](const char UNUSED *s){
-        log_vaddr_paddr = true; 
-        log_paddr_only = false; // prioritize vaddr-paddr over paddr-only
-     });
+  parser.option(0, "log-vaddr-paddr", 0, [&](const char UNUSED *s){log_vaddr_paddr = true;});
   parser.option(0, "log", 1,
                 [&](const char* s){log_path = s;});
   FILE *cmd_file = NULL;
