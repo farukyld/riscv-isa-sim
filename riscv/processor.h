@@ -68,8 +68,8 @@ struct insn_desc_t
 // regnum, data
 typedef std::unordered_map<reg_t, freg_t> commit_log_reg_t;
 
-// addr, value, size
-typedef std::vector<std::tuple<reg_t, uint64_t, uint8_t>> commit_log_mem_t;
+// addr, paddr, value, size
+typedef std::vector<std::tuple<reg_t, reg_t, uint64_t, uint8_t>> commit_log_mem_t;
 
 // architectural state of a RISC-V hart
 struct state_t
@@ -210,7 +210,11 @@ public:
   void set_debug(bool value);
   void set_histogram(bool value);
   void enable_log_commits();
+  void enable_log_paddr_only();
+  void enable_log_vaddr_paddr();
   bool get_log_commits_enabled() const { return log_commits_enabled; }
+  bool get_log_paddr_only_enabled() const { return log_paddr_only; }
+  bool get_log_vaddr_paddr_enabled() const { return log_vaddr_paddr; }
   void reset();
   void step(size_t n); // run for n cycles
   void put_csr(int which, reg_t val);
@@ -334,6 +338,8 @@ private:
   unsigned xlen;
   bool histogram_enabled;
   bool log_commits_enabled;
+  bool log_paddr_only;
+  bool log_vaddr_paddr;
   FILE *log_file;
   std::ostream sout_; // needed for socket command interface -s, also used for -d and -l, but not for --log
   bool halt_on_reset;

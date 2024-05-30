@@ -632,6 +632,16 @@ void processor_t::enable_log_commits()
   log_commits_enabled = true;
 }
 
+void processor_t::enable_log_paddr_only()
+{
+  log_paddr_only = true;
+}
+
+void processor_t::enable_log_vaddr_paddr()
+{
+  log_vaddr_paddr = true;
+}
+
 void processor_t::reset()
 {
   xlen = isa->get_max_xlen();
