@@ -728,6 +728,7 @@ class composite_csr_t: public csr_t {
   const unsigned upper_lsb;
 };
 
+// spec'te de bulamadim
 class seed_csr_t: public csr_t {
  public:
   seed_csr_t(processor_t* const proc, const reg_t addr);
@@ -751,6 +752,8 @@ class vector_csr_t: public basic_csr_t {
 
 typedef std::shared_ptr<vector_csr_t> vector_csr_t_p;
 
+// https://github.com/riscv/riscv-v-spec/blob/master/v-spec.adoc
+// saturation flags
 // For CSRs shared between Vector and P extensions (vxsat)
 class vxsat_csr_t: public masked_csr_t {
  public:

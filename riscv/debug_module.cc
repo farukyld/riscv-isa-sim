@@ -34,6 +34,8 @@ static unsigned field_width(unsigned n)
 
 debug_module_t::debug_module_t(simif_t *sim, const debug_module_config_t &config) :
   config(config),
+  // bunlarin ilklendirilme sirasi: 
+  // https://en.cppreference.com/w/cpp/language/constructor#:~:text=The%20order%20of%20member%20initializers%20in%20the%20list%20is%20irrelevant%3A%20the%20actual
   program_buffer_bytes((config.support_impebreak ? 4 : 0) + 4*config.progbufsize),
   debug_progbuf_start(debug_data_start - program_buffer_bytes),
   debug_abstract_start(debug_progbuf_start - debug_abstract_size*4),
