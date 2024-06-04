@@ -314,6 +314,8 @@ tlb_entry_t mmu_t::refill_tlb(reg_t vaddr, reg_t paddr, char* host_addr, access_
   reg_t idx = (vaddr >> PGSHIFT) % TLB_ENTRIES;
   reg_t expected_tag = vaddr >> PGSHIFT;
 
+  // host_offset = host_addr - vaddr
+  // target_offset = paddr - vaddr
   tlb_entry_t entry = {host_addr - vaddr, paddr - vaddr};
 
   if (in_mprv())
