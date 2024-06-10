@@ -11,7 +11,7 @@
 #  define D(x)
 #endif
 
-enum {
+enum jtag_ir_code_t {
   IR_IDCODE=1,
   IR_DTMCONTROL=0x10,
   IR_DBUS=0x11,
