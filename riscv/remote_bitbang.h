@@ -5,6 +5,7 @@
 
 #include "jtag_dtm.h"
 
+// jtag'e internet uzerinden erisim sagliyor.
 class remote_bitbang_t
 {
 public:
@@ -12,7 +13,7 @@ public:
   // port.
   remote_bitbang_t(uint16_t port, jtag_dtm_t *tap);
 
-  // Do a bit of work.
+  // Do a bit of work. // !!! localhost::port'ta bir sey var sa, jtag'a gonderiyor. jtag'den debug module'e gonderiyor. jtag'in host tarafi.
   void tick();
 
 private:

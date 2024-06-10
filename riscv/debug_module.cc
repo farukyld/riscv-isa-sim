@@ -182,10 +182,10 @@ bool debug_module_t::store(reg_t addr, size_t len, const uint8_t* bytes)
 
   uint8_t id_bytes[4];
   uint32_t id = 0;
-  if (len == 4) {
-    memcpy(id_bytes, bytes, 4);
-    id = read32(id_bytes, 0);
-  }
+  if (len == 4) /* !!! bu kontrol neden? sanki cok da onemli degil gibi */ {
+    memcpy(id_bytes, bytes, 4); // !!! buradaki memcpy'ye de ne gerek var anlamadim
+    id = read32(id_bytes, 0); 
+  } 
 
   addr = DEBUG_START + addr;
 
@@ -200,7 +200,8 @@ bool debug_module_t::store(reg_t addr, size_t len, const uint8_t* bytes)
     return true;
   }
 
-  if (addr == DEBUG_ROM_HALTED) {
+  // !!! ?
+  if (addr == DEBUG_ROM_HALTED) {  // !!! bir de store'da, addr neden ROM adresi olsun ki?
     assert (len == 4);
     if (!hart_state[id].halted) {
       hart_state[id].halted = true;
@@ -299,6 +300,7 @@ void debug_module_t::sb_autoincrement()
   sbaddress[3] += carry;
 }
 
+// system bus read, dmi_read ve dmi_write'ta kulaniliyor
 void debug_module_t::sb_read()
 {
   reg_t address = ((uint64_t) sbaddress[1] << 32) | sbaddress[0];
@@ -321,6 +323,7 @@ void debug_module_t::sb_read()
   }
 }
 
+// system bus write, dmi_write'ta kulaniliyor
 void debug_module_t::sb_write()
 {
   reg_t address = ((uint64_t) sbaddress[1] << 32) | sbaddress[0];
@@ -350,6 +353,7 @@ bool debug_module_t::hart_available(unsigned hart_id) const
   return true;
 }
 
+// !!! jtag tarafindan kullaniliyor
 bool debug_module_t::dmi_read(unsigned address, uint32_t *value)
 {
   uint32_t result = 0;
@@ -414,7 +418,7 @@ bool debug_module_t::dmi_read(unsigned address, uint32_t *value)
               } else {
                 dmstatus.allresumeack = false;
               }
-              auto hart = sim->get_harts().at(hart_id);
+              auto hart = sim->get_harts().at(hart_id); // !!! neden ??
               if (!hart_available(hart_id)) {
                 dmstatus.allrunning = false;
                 dmstatus.allhalted = false;
@@ -490,6 +494,7 @@ bool debug_module_t::dmi_read(unsigned address, uint32_t *value)
         }
         break;
       case DM_SBCS:
+      {
         result = set_field(result, DM_SBCS_SBVERSION, sbcs.version);
         result = set_field(result, DM_SBCS_SBREADONADDR, sbcs.readonaddr);
         result = set_field(result, DM_SBCS_SBACCESS, sbcs.sbaccess);
@@ -502,6 +507,7 @@ bool debug_module_t::dmi_read(unsigned address, uint32_t *value)
         result = set_field(result, DM_SBCS_SBACCESS32, sbcs.access32);
         result = set_field(result, DM_SBCS_SBACCESS16, sbcs.access16);
         result = set_field(result, DM_SBCS_SBACCESS8, sbcs.access8);
+      }
         break;
       case DM_SBADDRESS0:
         result = sbaddress[0];
@@ -573,6 +579,7 @@ static bool is_fpu_reg(unsigned regno)
     regno == CSR_FRM || regno == CSR_FCSR;
 }
 
+// dmi_read ve dmi_write'ta kulaniliyor
 bool debug_module_t::perform_abstract_command()
 {
   if (abstractcs.cmderr != CMDERR_NONE)
@@ -758,6 +765,7 @@ bool debug_module_t::perform_abstract_command()
   return true;
 }
 
+// !!! jtag tarafindan kullaniliyor
 bool debug_module_t::dmi_write(unsigned address, uint32_t value)
 {
   D(fprintf(stderr, "dmi_write(0x%x, 0x%x)\n", address, value));
