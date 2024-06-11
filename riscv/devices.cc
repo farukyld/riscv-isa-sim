@@ -4,6 +4,8 @@
 
 mmio_device_map_t& mmio_device_map()
 {
+  // !!! boyle bir seye ne gerek vardi? direkt global bir 
+  // degisken olarak tanimlamak yerine?
   static mmio_device_map_t device_map;
   return device_map;
 }
@@ -26,12 +28,21 @@ bool bus_t::load(reg_t addr, size_t len, uint8_t* bytes)
   if (devices.empty() || it == devices.begin()) {
     // Either the bus is empty, or there weren't 
     // any items with a base address <= addr
+    // !!! it == begin demek:
+    // addr, butun cihazlardan kucuk demek. upper_bound, key'i
+    //  addr'den buyuk ilk cihazi donduruyor.
+    // ama biz addr'den kucuk en buyuk cihazi istiyoruz, 
+    // demek ki oyle bir cihaz yok.
     return false;
   }
   // Found at least one item with base address <= addr
   // The iterator points to the device after this, so
   // go back by one item.
   it--;
+  // !!! it yukaridaki satiri calistirmadan once, 
+  // addr'den buyuk en kucuk cihazdi, yukaridaki satiri 
+  // calistirinca, addr'den kucuk en buyuk cihaz oldu.
+  // yani addr'nin hangi cihaza tekabul ettigini bulduk.
   return it->second->load(addr - it->first, len, bytes);
 }
 
@@ -91,6 +102,13 @@ bool mem_t::load_store(reg_t addr, size_t len, uint8_t* bytes, bool store)
   return true;
 }
 
+// !!! addr: paddr
+// dondurulen adres, host device'daki konum. 
+// not: paddr, page'lenmis bir sekilde bulunuyor. 
+// yani, void* addr = contents(paddr) dedigimizde,
+// hunharca addr'i kullanamayiz. zaten contents metodu
+// iki yerde kullaniliyor. (mem_t::load_store ve 
+// sim_t::addr_to_mem ) ikisinde de buna dikkat ediliyor.
 char* mem_t::contents(reg_t addr) {
   reg_t ppn = addr >> PGSHIFT, pgoff = addr % PGSIZE;
   auto search = sparse_memory_map.find(ppn);

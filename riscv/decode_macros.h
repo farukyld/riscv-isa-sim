@@ -120,6 +120,8 @@ do { \
 #define SHAMT (insn.i_imm() & 0x3F)
 #define BRANCH_TARGET (pc + insn.sb_imm())
 #define JUMP_TARGET (pc + insn.uj_imm())
+
+// rounding mode
 #define RM ({ int rm = insn.rm(); \
               if (rm == 7) rm = STATE.frm->read(); \
               if (rm > 4) throw trap_illegal_instruction(insn.bits()); \
@@ -161,6 +163,8 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
       WRITE_VSTATUS; \
     dirty_vs_state; \
   } while (0);
+
+// !!! pos, 2'nin kuveti olmali
 #define require_align(val, pos) require(is_aligned(val, pos))
 #define require_noover(astart, asize, bstart, bsize) \
   require(!is_overlapped(astart, asize, bstart, bsize))
@@ -204,6 +208,8 @@ static inline bool is_aligned(const unsigned val, const unsigned pos)
        npc = sext_xlen(x); \
      } while (0)
 
+// !!! dret, mnret, mret, sret buyruklarinda, kaydedilen pc'ye geri donmek icin kullaniliyor 
+// ayni zamanda wfi()'da
 #define set_pc_and_serialize(x) \
   do { reg_t __npc = (x) & p->pc_alignment_mask(); \
        npc = PC_SERIALIZE_AFTER; \
@@ -217,10 +223,12 @@ class wait_for_interrupt_t {};
        throw wait_for_interrupt_t(); \
      } while (0)
 
+// !!! csr buyruklarinda kullaniliyor
 #define serialize() set_pc_and_serialize(npc)
 
-/* Sentinel PC values to serialize simulator pipeline */
+/* Sentinel PC values to serialize simulator pipeline !!! ozel degerler, imem adreslemek icin degil */
 #define PC_SERIALIZE_BEFORE 3
+/* Sentinel PC values to serialize simulator pipeline !!! ozel degerler, imem adreslemek icin degil */
 #define PC_SERIALIZE_AFTER 5
 #define invalid_pc(pc) ((pc) & 1)
 
@@ -275,10 +283,12 @@ inline freg_t f128_negate(freg_t a)
   return a;
 }
 
+// !!! csr buyruklarinda kullaniliyor
 #define validate_csr(which, write) ({ \
   if (!STATE.serialized) return PC_SERIALIZE_BEFORE; \
   STATE.serialized = false; \
   /* permissions check occurs in get_csr */ \
+  /* !!! bu asagidakine ne gerek var? (kullanildigi yere bak) */ \
   (which); })
 
 /* For debug only. This will fail if the native machine's float types are not IEEE */
