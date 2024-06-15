@@ -22,7 +22,7 @@ std::string make_dts(size_t insns_per_rtc_tick, size_t cpu_hz,
                      std::string device_nodes)
 {
   std::stringstream s;
-  s << std::dec <<
+  s << std::dec << // decimal, integer'lari decimal olarak formatla
          "/dts-v1/;\n"
          "\n"
          "/ {\n"

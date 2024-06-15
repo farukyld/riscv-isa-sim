@@ -1060,13 +1060,13 @@ insn_func_t processor_t::decode_insn(insn_t insn)
 {
   // look up opcode in hash table
   size_t idx = insn.bits() % OPCODE_CACHE_SIZE;
-  insn_desc_t desc = opcode_cache[idx];
+  insn_desc_t desc = opcode_cache[idx]; // 8191 asal
 
   bool rve = extension_enabled('E');
 
   if (unlikely(insn.bits() != desc.match)) {
     // fall back to linear search
-    int cnt = 0;
+    int cnt = 0; // nerede kullaniyor?
     insn_desc_t* p = &instructions[0];
     while ((insn.bits() & p->mask) != p->match)
       p++, cnt++;
@@ -1082,7 +1082,7 @@ insn_func_t processor_t::decode_insn(insn_t insn)
     }
 
     opcode_cache[idx] = desc;
-    opcode_cache[idx].match = insn.bits();
+    opcode_cache[idx].match = insn.bits(); // gerek var miydi bu atamaya? bir onceki satirda zaten desc'a atandi.
   }
 
   return desc.func(xlen, rve, log_commits_enabled);

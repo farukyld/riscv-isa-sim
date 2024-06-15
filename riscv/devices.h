@@ -60,6 +60,13 @@ class mem_t : public abstract_mem_t {
  private:
   bool load_store(reg_t addr, size_t len, uint8_t* bytes, bool store);
 
+  // !!! reg_t: simulasyon ppn. char*: host adres
+  // map olmasinin cok da bir olayi yok, 
+  // yine en fazla sz - PGSIZE + 1 kadar olabiliyor ppn'ler.
+  // map'te sz'yi gecen ppn'ler de olabilir 
+  // (contents metodu ile sorgulanmissa), ama simulasyon boyunca 
+  // bunlara hic erisilmiyor.
+  // amac host adresi tutmak.
   std::map<reg_t, char*> sparse_memory_map;
   reg_t sz;
 };

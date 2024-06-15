@@ -4,7 +4,7 @@
 
 mmio_device_map_t& mmio_device_map()
 {
-  // !!! boyle bir seye ne gerek vardi? direkt global bir 
+  // !!! boyle bir seye ne gerek vardi? direkt global bir
   // degisken olarak tanimlamak yerine?
   static mmio_device_map_t device_map;
   return device_map;
@@ -13,25 +13,27 @@ mmio_device_map_t& mmio_device_map()
 void bus_t::add_device(reg_t addr, abstract_device_t* dev)
 {
   // Searching devices via lower_bound/upper_bound
-  // implicitly relies on the underlying std::map 
+  // implicitly relies on the underlying std::map
   // container to sort the keys and provide ordered
   // iteration over this sort, which it does. (python's
   // SortedDict is a good analogy)
   devices[addr] = dev;
 }
 
+
+// addr'nin devices'ta hangi device'a denk geldigini buluyor.
 bool bus_t::load(reg_t addr, size_t len, uint8_t* bytes)
 {
   // Find the device with the base address closest to but
   // less than addr (price-is-right search)
   auto it = devices.upper_bound(addr);
   if (devices.empty() || it == devices.begin()) {
-    // Either the bus is empty, or there weren't 
+    // Either the bus is empty, or there weren't
     // any items with a base address <= addr
     // !!! it == begin demek:
     // addr, butun cihazlardan kucuk demek. upper_bound, key'i
     //  addr'den buyuk ilk cihazi donduruyor.
-    // ama biz addr'den kucuk en buyuk cihazi istiyoruz, 
+    // ama biz addr'den kucuk en buyuk cihazi istiyoruz,
     // demek ki oyle bir cihaz yok.
     return false;
   }
@@ -39,13 +41,14 @@ bool bus_t::load(reg_t addr, size_t len, uint8_t* bytes)
   // The iterator points to the device after this, so
   // go back by one item.
   it--;
-  // !!! it yukaridaki satiri calistirmadan once, 
-  // addr'den buyuk en kucuk cihazdi, yukaridaki satiri 
+  // !!! it yukaridaki satiri calistirmadan once,
+  // addr'den buyuk en kucuk cihazdi, yukaridaki satiri
   // calistirinca, addr'den kucuk en buyuk cihaz oldu.
   // yani addr'nin hangi cihaza tekabul ettigini bulduk.
   return it->second->load(addr - it->first, len, bytes);
 }
 
+// addr'nin devices'ta hangi device'a denk geldigini buluyor.
 bool bus_t::store(reg_t addr, size_t len, const uint8_t* bytes)
 {
   // See comments in bus_t::load
@@ -81,6 +84,9 @@ mem_t::~mem_t()
     free(entry.second);
 }
 
+// verilen paddr'a henuz erisilmemisse onu iceren bir page olusturuyor.
+// verilen paddr, eger sz'den buyukse, false donduruyor. (page olusturulmuyor)
+// yazma veya okuma birden fazla page'e de yapilabilir (addr ve len'in durumuna gore)
 bool mem_t::load_store(reg_t addr, size_t len, uint8_t* bytes, bool store)
 {
   if (addr + len < addr || addr + len > sz)
@@ -102,18 +108,23 @@ bool mem_t::load_store(reg_t addr, size_t len, uint8_t* bytes, bool store)
   return true;
 }
 
+
+
 // !!! addr: paddr
-// dondurulen adres, host device'daki konum. 
-// not: paddr, page'lenmis bir sekilde bulunuyor. 
+// dondurulen adres, host device'daki konum.
+// not: paddr, page'lenmis bir sekilde bulunuyor.
 // yani, void* addr = contents(paddr) dedigimizde,
-// hunharca addr'i kullanamayiz. zaten contents metodu
-// iki yerde kullaniliyor. (mem_t::load_store ve 
+// hunharca addr'i kullanamayiz (page'in sununa kadar gecerli).
+// zaten contents metodu
+// iki yerde kullaniliyor. (mem_t::load_store ve
 // sim_t::addr_to_mem ) ikisinde de buna dikkat ediliyor.
+// not2: contents'e addr>sz olacak sekilde addr verilerek cagrilirsa
+// simulasyon boyunca (load/store'lar vasitasiyla, simdilik sadece buralarda kullaniliyor)
 char* mem_t::contents(reg_t addr) {
   reg_t ppn = addr >> PGSHIFT, pgoff = addr % PGSIZE;
   auto search = sparse_memory_map.find(ppn);
   if (search == sparse_memory_map.end()) {
-    auto res = (char*)calloc(PGSIZE, 1);
+    auto res = (char*)calloc(PGSIZE, 1); // !!! neden malloc PGSIZE degil de bu
     if (res == nullptr)
       throw std::bad_alloc();
     sparse_memory_map[ppn] = res;
@@ -128,6 +139,7 @@ void mem_t::dump(std::ostream& o) {
     reg_t ppn = i >> PGSHIFT;
     auto search = sparse_memory_map.find(ppn);
     if (search == sparse_memory_map.end()) {
+      // search bulunamadiysa (bellegin o bolgesine hic erisilmediyse)
       o.write(empty, PGSIZE);
     } else {
       o.write(sparse_memory_map[ppn], PGSIZE);

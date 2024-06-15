@@ -102,6 +102,7 @@ public:
   bool vill;
   bool vstart_alu;
 
+  // SEW: standard element width
   // vector element for various SEW
   template<class T> T& elt(reg_t vReg, reg_t n, bool is_write = false);
   // vector element group access, where EG is a std::array<T, N>.

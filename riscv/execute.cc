@@ -60,6 +60,7 @@ static void commit_log_print_value(FILE *log_file, int width, uint64_t val)
   commit_log_print_value(log_file, width, &val);
 }
 // !!! bu son instruction'un etkilerini dosyaya yazdirmak icin. log_reg_write'dan sadece okuma yapiliyor.
+// log-commits aktifken calisan bu. insn'i hex formatta (disasm degil) yaziyor. pc'yi de ayni sekilde.
 static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
 {
   FILE *log_file = p->get_log_file();
@@ -199,6 +200,7 @@ static inline reg_t execute_insn_fast(processor_t* p, reg_t pc, insn_fetch_t fet
   // !!! p->get_state()->log_reg_write verilog tarafina gonderilecek
   return npc;
 }
+
 static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t fetch)
 {
   if (p->get_log_commits_enabled()) {
