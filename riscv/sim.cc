@@ -316,7 +316,7 @@ void sim_t::set_histogram(bool value)
   }
 }
 
-void sim_t::configure_log(bool enable_log, bool enable_commitlog)
+void sim_t::configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr)
 {
   log = enable_log;
 
@@ -325,6 +325,17 @@ void sim_t::configure_log(bool enable_log, bool enable_commitlog)
 
   for (processor_t *proc : procs) {
     proc->enable_log_commits();
+  }
+
+  if (log_vaddr_paddr) {
+    for (processor_t *proc : procs) {
+      proc->enable_log_vaddr_paddr();
+    }
+  }
+  else if (log_paddr_only) {
+    for (processor_t *proc : procs) {
+      proc->enable_log_paddr_only();
+    }
   }
 }
 
