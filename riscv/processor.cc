@@ -159,6 +159,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
 
   elp = elp_t::NO_LP_EXPECTED;
 
+  critical_error = false;
+
   csr_init(proc, max_isa);
 }
 
@@ -199,8 +201,6 @@ void processor_t::reset()
 {
   xlen = isa.get_max_xlen();
   state.reset(this, isa.get_max_isa());
-  state.dcsr->halt = halt_on_reset;
-  halt_on_reset = false;
   if (any_vector_extensions())
     VU.reset();
   in_wfi = false;
@@ -212,8 +212,11 @@ void processor_t::reset()
     put_csr(CSR_PMPCFG0, PMP_R | PMP_W | PMP_X | PMP_NAPOT);
   }
 
-  for (auto e : custom_extensions) // reset any extensions
+  for (auto e : custom_extensions) { // reset any extensions
+    for (auto &csr: e.second->get_csrs(*this))
+      state.add_csr(csr->address, csr);
     e.second->reset();
+  }
 
   if (sim)
     sim->proc_reset(id);
@@ -319,8 +322,8 @@ void processor_t::take_interrupt(reg_t pending_interrupts)
   const bool nmie = !(state.mnstatus && !get_field(state.mnstatus->read(), MNSTATUS_NMIE));
   if (!state.debug_mode && nmie && enabled_interrupts) {
     // nonstandard interrupts have highest priority
-    if (enabled_interrupts >> (IRQ_M_EXT + 1))
-      enabled_interrupts = enabled_interrupts >> (IRQ_M_EXT + 1) << (IRQ_M_EXT + 1);
+    if (enabled_interrupts >> (IRQ_LCOF + 1))
+      enabled_interrupts = enabled_interrupts >> (IRQ_LCOF + 1) << (IRQ_LCOF + 1);
     // standard interrupt priority is MEI, MSI, MTI, SEI, SSI, STI
     else if (enabled_interrupts & MIP_MEIP)
       enabled_interrupts = MIP_MEIP;
@@ -394,11 +397,11 @@ const char* processor_t::get_privilege_string()
   abort();
 }
 
-void processor_t::enter_debug_mode(uint8_t cause)
+void processor_t::enter_debug_mode(uint8_t cause, uint8_t extcause)
 {
   const bool has_zicfilp = extension_enabled(EXT_ZICFILP);
   state.debug_mode = true;
-  state.dcsr->update_fields(cause, state.prv, state.v, state.elp);
+  state.dcsr->update_fields(cause, extcause, state.prv, state.v, state.elp);
   state.elp = elp_t::NO_LP_EXPECTED;
   set_privilege(PRV_M, false);
   state.dpc->write(state.pc);
@@ -459,7 +462,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
   // An unexpected trap - a trap when SDT is 1 - traps to M-mode
   if ((state.prv <= PRV_S && bit < max_xlen) &&
       (((vsdeleg >> bit) & 1)  || ((hsdeleg >> bit) & 1))) {
-    reg_t s = curr_virt ? state.nonvirtual_sstatus->read() : state.sstatus->read();
+    reg_t s = state.sstatus->read();
     supv_double_trap = get_field(s, MSTATUS_SDT);
     if (supv_double_trap)
       vsdeleg = hsdeleg = 0;
@@ -515,10 +518,23 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     // Handle the trap in M-mode
     const reg_t vector = (state.mtvec->read() & 1) && interrupt ? 4 * bit : 0;
     const reg_t trap_handler_address = (state.mtvec->read() & ~(reg_t)1) + vector;
-    // RNMI exception vector is implementation-defined.  Since we don't model
     // RNMI sources, the feature isn't very useful, so pick an invalid address.
+    // RNMI exception vector is implementation-defined.  Since we don't model
     const reg_t rnmi_trap_handler_address = 0;
     const bool nmie = !(state.mnstatus && !get_field(state.mnstatus->read(), MNSTATUS_NMIE));
+
+    reg_t s = state.mstatus->read();
+    if ( extension_enabled(EXT_SMDBLTRP)) {
+      if (get_field(s, MSTATUS_MDT) || !nmie) {
+        // Critical error - Double trap in M-mode or trap when nmie is 0
+        // RNMI is not modeled else double trap in M-mode would trap to
+        // RNMI handler instead of leading to a critical error
+        state.critical_error = 1;
+        return;
+      }
+      s = set_field(s, MSTATUS_MDT, 1);
+    }
+
     state.pc = !nmie ? rnmi_trap_handler_address : trap_handler_address;
     state.mepc->write(epc);
     state.mcause->write(supv_double_trap ? CAUSE_DOUBLE_TRAP : t.cause());
@@ -526,7 +542,6 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     state.mtval2->write(supv_double_trap ? t.cause() : t.get_tval2());
     state.mtinst->write(t.get_tinst());
 
-    reg_t s = state.mstatus->read();
     s = set_field(s, MSTATUS_MPIE, get_field(s, MSTATUS_MIE));
     s = set_field(s, MSTATUS_MPP, state.prv);
     s = set_field(s, MSTATUS_MIE, 0);
@@ -536,7 +551,7 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
     state.elp = elp_t::NO_LP_EXPECTED;
     state.mstatus->write(s);
     if (state.mstatush) state.mstatush->write(s >> 32);  // log mstatush change
-    state.tcontrol->write((state.tcontrol->read() & CSR_TCONTROL_MTE) ? CSR_TCONTROL_MPTE : 0);
+    if (state.tcontrol) state.tcontrol->write((state.tcontrol->read() & CSR_TCONTROL_MTE) ? CSR_TCONTROL_MPTE : 0);
     set_privilege(PRV_M, false);
   }
 }
@@ -552,7 +567,7 @@ void processor_t::take_trigger_action(triggers::action_t action, reg_t breakpoin
 
   switch (action) {
     case triggers::ACTION_DEBUG_MODE:
-      enter_debug_mode(DCSR_CAUSE_HWBP);
+      enter_debug_mode(DCSR_CAUSE_HWBP, 0);
       break;
     case triggers::ACTION_DEBUG_EXCEPTION: {
       trap_breakpoint trap(virt, breakpoint_tval);

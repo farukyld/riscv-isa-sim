@@ -103,8 +103,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
                                       cfg, this, cfg->hartids[i], halted,
                                       log_file.get(), sout_));
       harts[cfg->hartids[i]] = procs[i];
-      return;
     }
+    return;
   } // otherwise, generate the procs by parsing the DTS
 
   // Only make a CLINT (Core-Local INTerrupt controller) and PLIC (Platform-
@@ -195,7 +195,7 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
       exit(1);
     }
 
-    procs.push_back(new processor_t(isa_str, DEFAULT_PRIV,
+    procs.push_back(new processor_t(isa_str, cfg->priv,
                                     cfg, this, hartid, halted,
                                     log_file.get(), sout_));
     harts[hartid] = procs[cpu_idx];
@@ -353,7 +353,8 @@ void sim_t::set_procs_debug(bool value)
 
 static bool paddr_ok(reg_t addr)
 {
-  return (addr >> MAX_PADDR_BITS) == 0;
+  static_assert(MAX_PADDR_BITS == 8 * sizeof(addr));
+  return true;
 }
 
 bool sim_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)

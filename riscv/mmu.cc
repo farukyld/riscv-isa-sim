@@ -453,6 +453,10 @@ reg_t mmu_t::s2xlate(reg_t gva, reg_t gpa, access_type type, access_type trap_ty
       } else {
         reg_t ad = PTE_A | ((type == STORE) * PTE_D);
 
+        int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
+        if (((pte & PTE_N) && (ppn == 0 || i != 0)) || (napot_bits != 0 && napot_bits != 4))
+          break;
+
         if ((pte & ad) != ad) {
           if (hade) {
             // set accessed and possibly dirty bits
@@ -465,10 +469,6 @@ reg_t mmu_t::s2xlate(reg_t gva, reg_t gpa, access_type type, access_type trap_ty
 
         reg_t vpn = gpa >> PGSHIFT;
         reg_t page_mask = (reg_t(1) << PGSHIFT) - 1;
-
-        int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
-        if (((pte & PTE_N) && (ppn == 0 || i != 0)) || (napot_bits != 0 && napot_bits != 4))
-          break;
 
         reg_t page_base = ((ppn & ~((reg_t(1) << napot_bits) - 1))
                           | (vpn & ((reg_t(1) << napot_bits) - 1))
@@ -553,8 +553,10 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
       // not shadow stack access xwr=110 or xwr=010 page cause page fault
       // shadow stack access with PTE_X moved to following check
       break;
-    } else if (ss_page && (type == STORE && !ss_access)) {
-      // not shadow stack store and  xwr = 010 cause access-fault
+    } else if ((ppn & ((reg_t(1) << ptshift) - 1)) != 0) {
+      break;
+    } else if (ss_page && ((type == STORE && !ss_access) || access_info.flags.clean_inval)) {
+      // non-shadow-stack store or CBO with xwr = 010 causes access-fault
       throw trap_store_access_fault(virt, addr, 0, 0);
     } else if (ss_page && type == FETCH) {
       // fetch from shadow stack pages cause instruction access-fault
@@ -566,10 +568,12 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
                type == LOAD          ? !(sse && ss_page) && !(pte & PTE_R) && !(mxr && (pte & PTE_X)) :
                                        !(pte & PTE_W)) {
       break;
-    } else if ((ppn & ((reg_t(1) << ptshift) - 1)) != 0) {
-      break;
     } else {
       reg_t ad = PTE_A | ((type == STORE) * PTE_D);
+
+      int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
+      if (((pte & PTE_N) && (ppn == 0 || i != 0)) || (napot_bits != 0 && napot_bits != 4))
+        break;
 
       if ((pte & ad) != ad) {
         if (hade) {
@@ -586,10 +590,6 @@ reg_t mmu_t::walk(mem_access_info_t access_info)
 
       // for superpage or Svnapot NAPOT mappings, make a fake leaf PTE for the TLB's benefit.
       reg_t vpn = addr >> PGSHIFT;
-
-      int napot_bits = ((pte & PTE_N) ? (ctz(ppn) + 1) : 0);
-      if (((pte & PTE_N) && (ppn == 0 || i != 0)) || (napot_bits != 0 && napot_bits != 4))
-        break;
 
       reg_t page_base = ((ppn & ~((reg_t(1) << napot_bits) - 1))
                         | (vpn & ((reg_t(1) << napot_bits) - 1))
@@ -614,7 +614,7 @@ void mmu_t::register_memtracer(memtracer_t* t)
 }
 
 reg_t mmu_t::get_pmlen(bool effective_virt, reg_t effective_priv, xlate_flags_t flags) const {
-  if (!proc || proc->get_xlen() != 64 || (in_mprv() && (proc->state.sstatus->read() & MSTATUS_MXR)) || flags.hlvx)
+  if (!proc || proc->get_xlen() != 64 || ((proc->state.sstatus->readvirt(false) | proc->state.sstatus->readvirt(effective_virt)) & MSTATUS_MXR) || flags.hlvx)
     return 0;
 
   reg_t pmm = 0;
@@ -643,6 +643,7 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
     return {addr, addr, 0, false, {}, type};
   bool virt = proc->state.v;
   reg_t mode = proc->state.prv;
+  reg_t transformed_addr = addr;
   if (type != FETCH) {
     if (in_mprv()) {
       mode = get_field(proc->state.mstatus->read(), MSTATUS_MPP);
@@ -653,10 +654,11 @@ mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlat
       virt = true;
       mode = get_field(proc->state.hstatus->read(), HSTATUS_SPVP);
     }
+    auto xlen = proc->get_const_xlen();
+    reg_t pmlen = get_pmlen(virt, mode, xlate_flags);
+    reg_t satp = proc->state.satp->readvirt(virt);
+    bool is_physical_addr = mode == PRV_M || get_field(satp, SATP64_MODE) == SATP_MODE_OFF;
+    transformed_addr = is_physical_addr ? zext(addr, xlen - pmlen) : sext(addr, xlen - pmlen);
   }
-  reg_t pmlen = get_pmlen(virt, mode, xlate_flags);
-  reg_t satp = proc->state.satp->readvirt(virt);
-  bool is_physical_addr = mode == PRV_M || get_field(satp, SATP64_MODE) == SATP_MODE_OFF;
-  reg_t transformed_addr = is_physical_addr ? zext(addr, 64 - pmlen) : sext(addr, 64 - pmlen);
   return {addr, transformed_addr, mode, virt, xlate_flags, type};
 }

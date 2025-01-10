@@ -62,7 +62,7 @@ struct insn_desc_t
 };
 
 // regnum, data
-typedef std::unordered_map<reg_t, freg_t> commit_log_reg_t;
+typedef std::map<reg_t, freg_t> commit_log_reg_t;
 
 // addr, paddr, value, size
 typedef std::vector<std::tuple<reg_t, reg_t, uint64_t, uint8_t>> commit_log_mem_t;
@@ -99,6 +99,7 @@ struct state_t
   csr_t_p medeleg;
   csr_t_p mideleg;
   csr_t_p mcounteren;
+  csr_t_p mcountinhibit;
   csr_t_p mevent[N_HPMCOUNTERS];
   csr_t_p mnstatus;
   csr_t_p mnepc;
@@ -189,6 +190,8 @@ struct state_t
   int last_inst_flen;
 
   elp_t elp;
+
+  bool critical_error;
 
  private:
   void csr_init(processor_t* const proc, reg_t max_isa);
@@ -414,7 +417,7 @@ private:
   void register_insn(insn_desc_t, bool);
   int paddr_bits();
 
-  void enter_debug_mode(uint8_t cause);
+  void enter_debug_mode(uint8_t cause, uint8_t ext_cause);
 
   void debug_output_log(std::stringstream *s); // either output to interactive user or write to log file
 

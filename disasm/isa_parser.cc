@@ -9,6 +9,26 @@ static std::string strtolower(const char* str)
   return res;
 }
 
+static unsigned long safe_stoul(const std::string& s)
+{
+  int old_errno = errno;
+  errno = 0;
+
+  char* endp;
+  unsigned long ret = strtoul(s.c_str(), &endp, 10);
+
+  int new_errno = errno;
+  errno = old_errno;
+
+  if (endp == s.c_str() || *endp)
+    throw std::invalid_argument("stoul");
+
+  if (new_errno)
+    throw std::out_of_range("stoul");
+
+  return ret;
+}
+
 static void bad_option_string(const char *option, const char *value,
                               const char *msg)
 {
@@ -30,7 +50,7 @@ static void bad_priv_string(const char* priv)
 isa_parser_t::isa_parser_t(const char* str, const char *priv)
 {
   isa_string = strtolower(str);
-  const char* all_subsets = "mafdqcpvhb";
+  const char* all_subsets = "mafdqcbpvh";
 
   if (isa_string.compare(0, 4, "rv32") == 0)
     max_xlen = 32;
@@ -247,8 +267,8 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
       if (max_xlen != 32)
         bad_isa_string(str, "'Zilsd' requires RV32");
       extension_table[EXT_ZILSD] = true;
-    } else if (ext_str == "zcmlsd") {
-      extension_table[EXT_ZCMLSD] = true;
+    } else if (ext_str == "zclsd") {
+      extension_table[EXT_ZCLSD] = true;
     } else if (ext_str == "zvbb") {
       extension_table[EXT_ZVBB] = true;
     } else if (ext_str == "zvbc") {
@@ -327,17 +347,17 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
     } else if (ext_str.substr(0, 3) == "zvl") {
       reg_t new_vlen;
       try {
-        new_vlen = std::stol(ext_str.substr(3, ext_str.size() - 4));
+        new_vlen = safe_stoul(ext_str.substr(3, ext_str.size() - 4));
       } catch (std::logic_error& e) {
         new_vlen = 0;
       }
-      if ((new_vlen & (new_vlen - 1)) != 0 || new_vlen < 32)
+      if ((new_vlen & (new_vlen - 1)) != 0 || new_vlen < 32 || ext_str.back() != 'b')
         bad_isa_string(str, ("Invalid Zvl string: " + ext_str).c_str());
       vlen = std::max(vlen, new_vlen);
     } else if (ext_str.substr(0, 3) == "zve") {
       reg_t new_elen;
       try {
-        new_elen = std::stol(ext_str.substr(3, ext_str.size() - 4));
+        new_elen = safe_stoul(ext_str.substr(3, ext_str.size() - 4));
       } catch (std::logic_error& e) {
         new_elen = 0;
       }
@@ -355,6 +375,8 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
       elen = std::max(elen, new_elen);
     } else if (ext_str == "ssdbltrp") {
       extension_table[EXT_SSDBLTRP] = true;
+    } else if (ext_str == "smdbltrp") {
+      extension_table[EXT_SMDBLTRP] = true;
     } else if (ext_str[0] == 'x') {
       extension_table['X'] = true;
       if (ext_str.size() == 1) {
@@ -394,12 +416,12 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
       extension_table[EXT_ZCD] = true;
   }
 
-  if (extension_table[EXT_ZCMLSD] && extension_table[EXT_ZCF]) {
-    bad_isa_string(str, "'Zcmlsd' extension conflicts with 'Zcf' extensions");
+  if (extension_table[EXT_ZCLSD] && extension_table[EXT_ZCF]) {
+    bad_isa_string(str, "'Zclsd' extension conflicts with 'Zcf' extensions");
   }
 
-  if (extension_table[EXT_ZCMLSD] && (!extension_table[EXT_ZCA] || !extension_table[EXT_ZILSD])) {
-    bad_isa_string(str, "'Zcmlsd' extension requires 'Zca' and 'Zilsd' extensions");
+  if (extension_table[EXT_ZCLSD] && (!extension_table[EXT_ZCA] || !extension_table[EXT_ZILSD])) {
+    bad_isa_string(str, "'Zclsd' extension requires 'Zca' and 'Zilsd' extensions");
   }
 
   if (extension_table[EXT_ZFBFMIN] && !extension_table['F']) {
