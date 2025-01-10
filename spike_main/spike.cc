@@ -58,6 +58,7 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --log-commits         Generate a log of commits info\n");
   fprintf(stderr, "  --log-paddr-only      log physical address of memory commits [default: virtual address only]\n");
   fprintf(stderr, "  --log-vaddr-paddr     log virtual and physical addresses of memory commits [default: virtual address only]\n");
+  fprintf(stderr, "  --log-l-s-mem         log memory commits as \"lmem\" (for load) and \"smem\" (for store) instead of \"mem\"\n");
   fprintf(stderr, "  --extension=<name>    Specify RoCC Extension\n");
   fprintf(stderr, "                          This flag can be used multiple times.\n");
   fprintf(stderr, "  --extlib=<name>       Shared library to load\n");
@@ -344,6 +345,7 @@ int main(int argc, char** argv)
   bool log_commits = false;
   bool log_paddr_only = false;
   bool log_vaddr_paddr = false;
+  bool log_l_s_mem = false;
   const char *log_path = nullptr;
   std::vector<std::function<extension_t*()>> extensions;
   const char* initrd = NULL;
@@ -449,6 +451,7 @@ int main(int argc, char** argv)
   parser.option(0, "log-paddr-only", 0,
                 [&](const char UNUSED *s){log_paddr_only = true;});
   parser.option(0, "log-vaddr-paddr", 0, [&](const char UNUSED *s){log_vaddr_paddr = true;});
+  parser.option(0, "log-l-s-mem", 0, [&](const char UNUSED *s){log_l_s_mem = true;});
   parser.option(0, "log", 1,
                 [&](const char* s){log_path = s;});
   FILE *cmd_file = NULL;
@@ -557,7 +560,7 @@ int main(int argc, char** argv)
   }
 
   s.set_debug(debug);
-  s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr);
+  s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);
   s.set_histogram(histogram);
 
   auto return_code = s.run();

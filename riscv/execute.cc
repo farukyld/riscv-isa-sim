@@ -139,9 +139,13 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
 
   bool log_paddr_only = p->get_log_paddr_only_enabled();
   bool log_vaddr_paddr = p->get_log_vaddr_paddr_enabled();
+  bool log_l_s_mem = p->get_log_l_s_mem();
 
   for (auto item : load) {
-    fprintf(log_file, " mem ");
+    if (unlikely(log_l_s_mem))
+      fprintf(log_file, " lmem ");
+    else
+      fprintf(log_file, " mem ");
     if (unlikely(log_vaddr_paddr))
     {
       commit_log_print_value(log_file, xlen, std::get<0>(item));
@@ -159,7 +163,10 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
   }
 
   for (auto item : store) {
-    fprintf(log_file, " mem ");
+    if (unlikely(log_l_s_mem))
+      fprintf(log_file, " smem ");
+    else
+      fprintf(log_file, " mem ");
     if (unlikely(log_vaddr_paddr))
     {
       commit_log_print_value(log_file, xlen, std::get<0>(item));

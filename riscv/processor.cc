@@ -190,6 +190,11 @@ void processor_t::enable_log_vaddr_paddr()
   log_vaddr_paddr = true;
 }
 
+void processor_t::enable_log_l_s_mem()
+{
+  log_l_s_mem = true;
+}
+
 void processor_t::reset()
 {
   xlen = isa.get_max_xlen();
