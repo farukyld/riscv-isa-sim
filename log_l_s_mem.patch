@@ -1,0 +1,147 @@
+diff --git a/riscv/execute.cc b/riscv/execute.cc
+index a10fa956..c27ede1f 100644
+--- a/riscv/execute.cc
++++ b/riscv/execute.cc
+@@ -139,9 +139,13 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
+ 
+   bool log_paddr_only = p->get_log_paddr_only_enabled();
+   bool log_vaddr_paddr = p->get_log_vaddr_paddr_enabled();
++  bool log_l_s_mem = p->get_log_l_s_mem();
+ 
+   for (auto item : load) {
+-    fprintf(log_file, " mem ");
++    if (unlikely(log_l_s_mem))
++      fprintf(log_file, " lmem ");
++    else
++      fprintf(log_file, " mem ");
+     if (unlikely(log_vaddr_paddr))
+     {
+       commit_log_print_value(log_file, xlen, std::get<0>(item));
+@@ -159,7 +163,10 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
+   }
+ 
+   for (auto item : store) {
+-    fprintf(log_file, " mem ");
++    if (unlikely(log_l_s_mem))
++      fprintf(log_file, " smem ");
++    else
++      fprintf(log_file, " mem ");
+     if (unlikely(log_vaddr_paddr))
+     {
+       commit_log_print_value(log_file, xlen, std::get<0>(item));
+diff --git a/riscv/processor.cc b/riscv/processor.cc
+index d07a01ea..031c216a 100644
+--- a/riscv/processor.cc
++++ b/riscv/processor.cc
+@@ -190,6 +190,11 @@ void processor_t::enable_log_vaddr_paddr()
+   log_vaddr_paddr = true;
+ }
+ 
++void processor_t::enable_log_l_s_mem()
++{
++  log_l_s_mem = true;
++}
++
+ void processor_t::reset()
+ {
+   xlen = isa.get_max_xlen();
+diff --git a/riscv/processor.h b/riscv/processor.h
+index 55a3165d..7e66879e 100644
+--- a/riscv/processor.h
++++ b/riscv/processor.h
+@@ -253,9 +253,11 @@ public:
+   void enable_log_commits();
+   void enable_log_paddr_only();
+   void enable_log_vaddr_paddr();
++  void enable_log_l_s_mem();
+   bool get_log_commits_enabled() const { return log_commits_enabled; }
+   bool get_log_paddr_only_enabled() const { return log_paddr_only; }
+   bool get_log_vaddr_paddr_enabled() const { return log_vaddr_paddr; }
++  bool get_log_l_s_mem() const { return log_l_s_mem; }
+   void reset();
+   void step(size_t n); // run for n cycles
+   void put_csr(int which, reg_t val);
+@@ -383,6 +385,7 @@ private:
+   bool histogram_enabled;
+   bool log_commits_enabled;
+   bool log_paddr_only;
++  bool log_l_s_mem;
+   bool log_vaddr_paddr;
+   FILE *log_file;
+   std::ostream sout_; // needed for socket command interface -s, also used for -d and -l, but not for --log
+diff --git a/riscv/sim.cc b/riscv/sim.cc
+index cbefbfe6..48f0c5f4 100644
+--- a/riscv/sim.cc
++++ b/riscv/sim.cc
+@@ -316,7 +316,7 @@ void sim_t::set_histogram(bool value)
+   }
+ }
+ 
+-void sim_t::configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr)
++void sim_t::configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr, bool log_l_s_mem)
+ {
+   log = enable_log;
+ 
+@@ -337,6 +337,12 @@ void sim_t::configure_log(bool enable_log, bool enable_commitlog, bool log_paddr
+       proc->enable_log_paddr_only();
+     }
+   }
++
++  if (log_l_s_mem) {
++    for (processor_t *proc : procs) {
++      proc->enable_log_l_s_mem();
++    }
++  }
+ }
+ 
+ void sim_t::set_procs_debug(bool value)
+diff --git a/riscv/sim.h b/riscv/sim.h
+index 03a3a79b..28b4b5bc 100644
+--- a/riscv/sim.h
++++ b/riscv/sim.h
+@@ -48,7 +48,7 @@ public:
+   //
+   // If enable_log is true, an instruction trace will be generated. If
+   // enable_commitlog is true, so will the commit results
+-  void configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr);
++  void configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr, bool log_l_s_mem);
+ 
+   void set_procs_debug(bool value);
+   void set_remote_bitbang(remote_bitbang_t* remote_bitbang) {
+diff --git a/spike_main/spike.cc b/spike_main/spike.cc
+index 21c0fa71..c78d7d55 100644
+--- a/spike_main/spike.cc
++++ b/spike_main/spike.cc
+@@ -58,6 +58,7 @@ static void help(int exit_code = 1)
+   fprintf(stderr, "  --log-commits         Generate a log of commits info\n");
+   fprintf(stderr, "  --log-paddr-only      log physical address of memory commits [default: virtual address only]\n");
+   fprintf(stderr, "  --log-vaddr-paddr     log virtual and physical addresses of memory commits [default: virtual address only]\n");
++  fprintf(stderr, "  --log-l-s-mem         log memory commits as \"lmem\" (for load) and \"smem\" (for store) instead of \"mem\"\n");
+   fprintf(stderr, "  --extension=<name>    Specify RoCC Extension\n");
+   fprintf(stderr, "                          This flag can be used multiple times.\n");
+   fprintf(stderr, "  --extlib=<name>       Shared library to load\n");
+@@ -344,6 +345,7 @@ int main(int argc, char** argv)
+   bool log_commits = false;
+   bool log_paddr_only = false;
+   bool log_vaddr_paddr = false;
++  bool log_l_s_mem = false;
+   const char *log_path = nullptr;
+   std::vector<std::function<extension_t*()>> extensions;
+   const char* initrd = NULL;
+@@ -449,6 +451,7 @@ int main(int argc, char** argv)
+   parser.option(0, "log-paddr-only", 0,
+                 [&](const char UNUSED *s){log_paddr_only = true;});
+   parser.option(0, "log-vaddr-paddr", 0, [&](const char UNUSED *s){log_vaddr_paddr = true;});
++  parser.option(0, "log-l-s-mem", 0, [&](const char UNUSED *s){log_l_s_mem = true;});
+   parser.option(0, "log", 1,
+                 [&](const char* s){log_path = s;});
+   FILE *cmd_file = NULL;
+@@ -557,7 +560,7 @@ int main(int argc, char** argv)
+   }
+ 
+   s.set_debug(debug);
+-  s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr);
++  s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);
+   s.set_histogram(histogram);
+ 
+   auto return_code = s.run();
