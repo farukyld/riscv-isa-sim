@@ -337,7 +337,8 @@ void htif_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, s
         device_list.handle_command(cmd);
       } else {
         // idle_single_step();
-        throw "not implemented";
+        // throw "not implemented";
+        idle();
       }
 
       device_list.tick();
@@ -360,7 +361,8 @@ void htif_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, s
 void htif_t::single_step_without_communication()
 {
   // idle_single_step();
-  throw "not implemented";
+  // throw "not implemented";
+  idle();
 }
 
 
