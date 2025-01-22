@@ -308,6 +308,62 @@ int htif_t::exit_code()
   return exitcode >> 1;
 }
 
+
+bool htif_t::communication_available()
+{
+  return tohost_addr != 0;
+}
+
+bool htif_t::exitcode_not_zero()
+{
+  return exitcode != 0;
+}
+
+
+void htif_t::single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback)
+{
+  uint64_t tohost;
+
+    try {
+      if ((tohost = from_target(mem.read_uint64(tohost_addr))) != 0)
+        mem.write_uint64(tohost_addr, target_endian<uint64_t>::zero);
+    } catch (mem_trap_t& t) {
+      bad_address("accessing tohost", t.get_tval());
+    }
+
+    try {
+      if (tohost != 0) {
+        command_t cmd(mem, tohost, fromhost_callback);
+        device_list.handle_command(cmd);
+      } else {
+        // idle_single_step();
+        throw "not implemented";
+      }
+
+      device_list.tick();
+    } catch (mem_trap_t& t) {
+      std::stringstream tohost_hex;
+      tohost_hex << std::hex << tohost;
+      bad_address("host was accessing memory on behalf of target (tohost = 0x" + tohost_hex.str() + ")", t.get_tval());
+    }
+
+    try {
+      if (!(fromhost_queue->empty()) && !mem.read_uint64(fromhost_addr)) {
+        mem.write_uint64(fromhost_addr, to_target(fromhost_queue->front()));
+        fromhost_queue->pop();
+      }
+    } catch (mem_trap_t& t) {
+      bad_address("accessing fromhost", t.get_tval());
+    }
+}
+
+void htif_t::single_step_without_communication()
+{
+  // idle_single_step();
+  throw "not implemented";
+}
+
+
 void htif_t::parse_arguments(int argc, char ** argv)
 {
   optind = 0; // reset optind as HTIF may run getopt _after_ others
