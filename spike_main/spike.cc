@@ -318,6 +318,14 @@ static std::vector<size_t> parse_hartids(const char *s)
 
 int main(int argc, char** argv)
 {
+  return sub_main(argc,argv,NULL,false);
+}
+
+volatile __attribute_used__ cfg_t* cfg_ptr;
+volatile __attribute_used__ sim_t* s_ptr;
+
+int sub_main(int argc, char** argv, char** env, bool in_cosim)
+{
   bool debug = false;
   bool halted = false;
   bool histogram = false;
@@ -347,7 +355,8 @@ int main(int argc, char** argv)
   debug_module_config_t dm_config;
   cfg_arg_t<size_t> nprocs(1);
 
-  cfg_t cfg;
+  cfg_ptr=new cfg_t();
+  cfg_t &cfg=*cfg_ptr;
 
   auto const device_parser = [&plugin_device_factories](const char *s) {
     const std::string device_args(s);
@@ -518,10 +527,11 @@ int main(int argc, char** argv)
     cfg.hartids = default_hartids;
   }
 
-  sim_t s(&cfg, halted,
+  s_ptr = new sim_t(&cfg, halted,
       mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
       socket,
       cmd_file);
+  sim_t &s = *s_ptr;
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *) NULL);
   std::unique_ptr<jtag_dtm_t> jtag_dtm(
       new jtag_dtm_t(&s.debug_module, dmi_rti));
@@ -551,6 +561,9 @@ int main(int argc, char** argv)
   s.set_debug(debug);
   s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);
   s.set_histogram(histogram);
+
+  if (in_cosim)
+    return 0;
 
   auto return_code = s.run();
 
