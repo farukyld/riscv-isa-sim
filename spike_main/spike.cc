@@ -559,6 +559,8 @@ int sub_main(int argc, char** argv, char** env, bool in_cosim)
   }
 
   s.set_debug(debug);
+  s.set_cosim(in_cosim);
+  s.set_procs_cosim(in_cosim);
   s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);
   s.set_histogram(histogram);
 

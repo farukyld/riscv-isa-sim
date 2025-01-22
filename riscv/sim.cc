@@ -308,6 +308,12 @@ void sim_t::set_debug(bool value)
   debug = value;
 }
 
+void sim_t::set_cosim(bool value)
+{
+  in_cosim = value;
+}
+
+
 void sim_t::set_histogram(bool value)
 {
   histogram_enabled = value;
@@ -447,7 +453,12 @@ void sim_t::idle()
   if (debug || ctrlc_pressed)
     interactive();
   else
-    step(INTERLEAVE);
+  {
+    if (!in_cosim)
+      step(INTERLEAVE);
+    else
+      step(1);
+  }
 
   if (remote_bitbang)
     remote_bitbang->tick();

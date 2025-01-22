@@ -252,6 +252,7 @@ public:
   const cfg_t &get_cfg() { return *cfg; }
 
   void set_debug(bool value);
+  void set_cosim(bool value);
   void set_histogram(bool value);
   void enable_log_commits();
   void enable_log_paddr_only();
@@ -352,6 +353,7 @@ public:
 
   // When true, display disassembly of each instruction that's executed.
   bool debug;
+  bool in_cosim;
   // When true, take the slow simulation path.
   bool slow_path();
   bool halted() { return state.debug_mode; }

@@ -172,6 +172,12 @@ void processor_t::set_debug(bool value)
     e.second->set_debug(value);
 }
 
+void processor_t::set_cosim(bool value)
+{
+  in_cosim = value;
+}
+
+
 void processor_t::set_histogram(bool value)
 {
   histogram_enabled = value;
@@ -179,22 +185,24 @@ void processor_t::set_histogram(bool value)
 
 void processor_t::enable_log_commits()
 {
-  log_commits_enabled = true;
+  log_commits_enabled = true; // loglamayla alakali
 }
 
 void processor_t::enable_log_paddr_only()
 {
-  log_paddr_only = true;
+  log_paddr_only = true;// aslinda sadece print'lemeyle alakali, loglamayla degil. 
+                        // paddr ve vaddr her zaman loglaniyor.
 }
 
 void processor_t::enable_log_vaddr_paddr()
 {
-  log_vaddr_paddr = true;
+  log_vaddr_paddr = true;// aslinda sadece print'lemeyle alakali, loglamayla degil
+                         // paddr ve vaddr her zaman loglaniyor.
 }
 
 void processor_t::enable_log_l_s_mem()
 {
-  log_l_s_mem = true;
+  log_l_s_mem = true;// aslinda sadece print'lemeyle alakali, loglamayla degil
 }
 
 void processor_t::reset()

@@ -41,6 +41,7 @@ public:
   // run the simulation to completion
   int run();
   void set_debug(bool value);
+  void set_cosim(bool value);
   void set_histogram(bool value);
   void add_device(reg_t addr, std::shared_ptr<abstract_device_t> dev);
 
@@ -93,6 +94,7 @@ private:
   size_t current_step;
   size_t current_proc;
   bool debug;
+  bool in_cosim;
   bool histogram_enabled; // provide a histogram of PCs
   bool log;
   remote_bitbang_t* remote_bitbang;
