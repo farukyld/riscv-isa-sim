@@ -52,6 +52,7 @@ public:
   void configure_log(bool enable_log, bool enable_commitlog, bool log_paddr_only, bool log_vaddr_paddr, bool log_l_s_mem);
 
   void set_procs_debug(bool value);
+  void set_procs_cosim(bool value);
   void set_remote_bitbang(remote_bitbang_t* remote_bitbang) {
     this->remote_bitbang = remote_bitbang;
   }
