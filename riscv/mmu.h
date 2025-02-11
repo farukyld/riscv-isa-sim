@@ -93,7 +93,8 @@ public:
       paddr = tlb_data[vpn % TLB_ENTRIES].target_offset + addr;
     } else {
       mem_access_info_t access_info = generate_access_info(addr, LOAD, xlate_flags);
-      paddr = translate(access_info, sizeof(T));
+      if (unlikely(proc && proc->get_log_commits_enabled()))
+        paddr = translate(access_info, sizeof(T));
       load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags);
     }
 
@@ -139,7 +140,8 @@ public:
     } else {
       target_endian<T> target_val = to_target(val);
       mem_access_info_t access_info = generate_access_info(addr, STORE, xlate_flags);
-      paddr = translate(access_info, sizeof(T));
+      if (unlikely(proc && proc->get_log_commits_enabled()))
+        paddr = translate(access_info, sizeof(T));
       store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false);
     }
 
