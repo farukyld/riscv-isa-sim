@@ -461,7 +461,7 @@ void sim_t::idle()
   if (debug || ctrlc_pressed)
     interactive();
   else {
-    static int max_step_length = in_cosim ? 1 : INTERLEAVE;
+    static uint64_t max_step_length = in_cosim ? 1 : INTERLEAVE;
     if (instruction_limit.has_value()) {
       if (*instruction_limit < max_step_length) {
         // Final step.
