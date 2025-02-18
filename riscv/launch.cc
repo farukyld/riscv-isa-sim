@@ -81,12 +81,14 @@ static void help(int exit_code = 1)
       "required for a DMI access [default 0]\n");
   fprintf(stderr, "  --dm-abstract-rti=<n> Number of Run-Test/Idle cycles "
       "required for an abstract command to execute [default 0]\n");
-  fprintf(stderr, "  --dm-no-hasel         Debug module supports hasel\n");
+  fprintf(stderr, "  --dm-no-hasel         Debug module won't support hasel\n");
   fprintf(stderr, "  --dm-no-abstract-csr  Debug module won't support abstract CSR access\n");
   fprintf(stderr, "  --dm-no-abstract-fpr  Debug module won't support abstract FPR access\n");
   fprintf(stderr, "  --dm-no-halt-groups   Debug module won't support halt groups\n");
   fprintf(stderr, "  --dm-no-impebreak     Debug module won't support implicit ebreak in program buffer\n");
   fprintf(stderr, "  --blocksz=<size>      Cache block size (B) for CMO operations(powers of 2) [default 64]\n");
+  fprintf(stderr, "  --instructions=<n>    Stop after n instructions\n");
+
 
   exit(exit_code);
 }
@@ -319,6 +321,8 @@ static std::vector<size_t> parse_hartids(const char *s)
 
 __attribute_used__ cfg_t* cfg_ptr;
 __attribute_used__ sim_t* s_ptr;
+__attribute_used__ std::optional<unsigned long long> instructions;
+
 
 int launch(int argc, char** argv, char** env, bool in_cosim)
 {
@@ -455,6 +459,7 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
         exit(-1);
      }
   });
+  
   parser.option(0, "blocksz", 1, [&](const char* s){
     blocksz = strtoull(s, 0, 0);
     const unsigned min_blocksz = 16;
@@ -464,6 +469,9 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
         min_blocksz, max_blocksz);
       exit(-1);
     }
+  });
+  parser.option(0, "instructions", 1, [&](const char* s){
+    instructions = strtoull(s, 0, 0);
   });
 
   auto argv1 = parser.parse(argv);
@@ -527,7 +535,8 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   s_ptr = new sim_t(&cfg, halted,
       mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
       socket,
-      cmd_file);
+      cmd_file,
+      instructions);
   sim_t &s = *s_ptr;
   std::unique_ptr<remote_bitbang_t> remote_bitbang((remote_bitbang_t *) NULL);
   std::unique_ptr<jtag_dtm_t> jtag_dtm(

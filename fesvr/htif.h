@@ -28,6 +28,8 @@ class htif_t : public chunked_memif_t
   bool exitcode_not_zero();
   void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
   void single_step_without_communication();
+  // Cause the simulation to exit with the given exit code.
+  void htif_exit(int exit_code);
 
   int run();
   bool done();
@@ -81,6 +83,10 @@ class htif_t : public chunked_memif_t
   // Given an address, return symbol from addr2symbol map
   const char* get_symbol(uint64_t addr);
 
+  // Return true if the simulation should exit due to a signal,
+  // or end-of-test from HTIF, or an instruction limit.
+  bool should_exit() const;
+
  private:
   void parse_arguments(int argc, char ** argv);
   void register_devices();
@@ -98,7 +104,8 @@ class htif_t : public chunked_memif_t
   addr_t sig_len; // torture
   addr_t tohost_addr;
   addr_t fromhost_addr;
-  int exitcode;
+  // Set to a value by htif_exit() when the simulation should exit.
+  std::optional<int> exitcode;
   bool stopped;
 
   device_list_t device_list;
