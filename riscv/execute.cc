@@ -210,18 +210,18 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   try {
     npc = fetch.func(p, fetch.insn, pc);
     if (npc != PC_SERIALIZE_BEFORE) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_enabled() && !p->in_cosim) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
      }
   } catch (wait_for_interrupt_t &t) {
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_enabled() && !p->in_cosim) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
       throw;
   } catch(mem_trap_t& t) {
       //handle segfault in midlle of vector load/store
-      if (p->get_log_commits_enabled()) {
+      if (p->get_log_commits_enabled() && !p->in_cosim) {
         for (auto item : p->get_state()->log_reg_write) {
           if ((item.first & 3) == 3) {
             commit_log_print_insn(p, pc, fetch.insn);
@@ -240,9 +240,8 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
 
 bool processor_t::slow_path()
 {
-  return !in_cosim && // in cosim, always execute without logging.
-  ( debug || state.single_step != state.STEP_NONE || state.debug_mode ||
-         log_commits_enabled || histogram_enabled || in_wfi || check_triggers_icount) ;
+  return debug || state.single_step != state.STEP_NONE || state.debug_mode ||
+         log_commits_enabled || histogram_enabled || in_wfi || check_triggers_icount ;
 }
 
 // fetch/decode/execute loop
