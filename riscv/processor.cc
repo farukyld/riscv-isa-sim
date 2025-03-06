@@ -689,7 +689,7 @@ insn_func_t processor_t::decode_insn(insn_t insn)
   size_t idx = insn.bits() % OPCODE_CACHE_SIZE;
   auto [hit, desc] = opcode_cache[idx].lookup(insn.bits());
 
-  bool rve = extension_enabled('E');
+  // bool rve = extension_enabled('E');
 
   if (unlikely(!hit)) {
     // fall back to linear search
@@ -706,7 +706,8 @@ insn_func_t processor_t::decode_insn(insn_t insn)
     opcode_cache[idx].replace(insn.bits(), desc);
   }
 
-  return desc->func(xlen, rve, log_commits_enabled);
+  // return desc->func(xlen, rve, log_commits_enabled);
+  return desc->logged_rv64i;
 }
 
 void processor_t::register_insn(insn_desc_t desc, bool is_custom) {
