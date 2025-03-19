@@ -310,9 +310,15 @@ void processor_t::take_interrupt(reg_t pending_interrupts)
   in_wfi = false;
 
   // M-ints have higher priority over HS-ints and VS-ints
-  const reg_t mie = get_field(state.mstatus->read(), MSTATUS_MIE);
+  const reg_t mie = get_field(state.mstatus->read(), MSTATUS_MIE); // m mode interuptlar aktif
+
+  //   m mod'dan daha asagi bir moddayiz. veya m moddayiz ve m mode interuptlar aktif
   const reg_t m_enabled = state.prv < PRV_M || (state.prv == PRV_M && mie);
+  //                            bekleyenlerden   delege edilemeyenlerden  yukaridaki kosul gercekse
   reg_t enabled_interrupts = pending_interrupts & ~state.mideleg->read() & -m_enabled;
+  // yani, 
+  // bekeyenlerden, delege edilemeyenlerden, m mode'daysak ve m mode interupt kabul ediyorsa
+  //  veya bekeyenlerden, delege edilemeyenlerden, m modda degilsek. (m mod'a gonderilecek?)
   if (enabled_interrupts == 0) {
     // HS-ints have higher priority over VS-ints
     const reg_t deleg_to_hs = state.mideleg->read() & ~state.hideleg->read();

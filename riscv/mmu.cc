@@ -640,6 +640,15 @@ reg_t mmu_t::get_pmlen(bool effective_virt, reg_t effective_priv, xlate_flags_t 
   return 0;
 }
 
+
+// struct mem_access_info_t {
+//   const reg_t vaddr;
+//   const reg_t transformed_vaddr;
+//   const reg_t effective_priv;
+//   const bool effective_virt;
+//   const xlate_flags_t flags;
+//   const access_type type;
+// };
 mem_access_info_t mmu_t::generate_access_info(reg_t addr, access_type type, xlate_flags_t xlate_flags) {
   if (!proc)
     return {addr, addr, 0, false, {}, type};

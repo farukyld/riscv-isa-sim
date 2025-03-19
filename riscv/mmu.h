@@ -306,7 +306,7 @@ public:
     if (matched_trigger)
       throw *matched_trigger;
 
-    auto tlb_entry = translate_insn_addr(addr);
+    auto tlb_entry = translate_insn_addr(addr); // fetch_slow_path
     insn_bits_t insn = from_le(*(uint16_t*)(tlb_entry.host_offset + addr));
     int length = insn_length(insn);
 
@@ -315,6 +315,7 @@ public:
     } else if (length == 2) {
       // entire instruction already fetched
     } else if (length == 6) {
+      // translate_insn_addr_to_host -> translate_insn_addr -> fetch_slow_path
       insn |= (insn_bits_t)from_le(*(const uint16_t*)translate_insn_addr_to_host(addr + 2)) << 16;
       insn |= (insn_bits_t)from_le(*(const uint16_t*)translate_insn_addr_to_host(addr + 4)) << 32;
     } else {
