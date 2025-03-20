@@ -151,7 +151,7 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
       commit_log_print_value(log_file, xlen, std::get<0>(item));
       fprintf(log_file, " ");
       commit_log_print_value(log_file, xlen, std::get<1>(item));
-    } 
+    }
     else if (unlikely(log_paddr_only))
     {
       commit_log_print_value(log_file, xlen, std::get<1>(item));
@@ -172,7 +172,7 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
       commit_log_print_value(log_file, xlen, std::get<0>(item));
       fprintf(log_file, " ");
       commit_log_print_value(log_file, xlen, std::get<1>(item));
-    } 
+    }
     else if (unlikely(log_paddr_only))
     {
       commit_log_print_value(log_file, xlen, std::get<1>(item));
@@ -279,6 +279,8 @@ void processor_t::step(size_t n)
         instret++; \
       }
 
+    bool after_debug_mode_wfi_check = false;
+
     try
     {
       take_pending_interrupt();
@@ -311,16 +313,31 @@ void processor_t::step(size_t n)
             }
           }
 
+          after_debug_mode_wfi_check = false;
           // debug mode wfis must nop
           if (unlikely(in_wfi && !state.debug_mode)) {
             throw wait_for_interrupt_t();
           }
+          after_debug_mode_wfi_check = true; // to check if wfi is thrown by instruction execution or before instruction execution.
 
           in_wfi = false;
           insn_fetch_t fetch = mmu->load_insn(pc);
           // if (debug && !state.serialized)
           //   disasm(fetch.insn);
-          pc = execute_insn_logged(this, pc, fetch);
+          if (this->get_log_commits_enabled()) {
+            commit_log_reset(this);
+            commit_log_stash_privilege(this);
+          }
+          pc = fetch.func(this, fetch.insn, pc);
+          // pc = execute_insn_logged(this, pc, fetch);
+          if (pc != PC_SERIALIZE_BEFORE) {
+            if (log_commits_enabled && !in_cosim) {
+              write(2,&pc,sizeof(reg_t));
+              // fwrite(&pc,sizeof(reg_t),1,stderr);
+
+              // commit_log_print_insn(p, pc, fetch.insn);
+            }
+          }
           advance_pc();
 
           // Resume from debug mode in critical error
@@ -356,6 +373,11 @@ void processor_t::step(size_t n)
     catch(trap_t& t)
     {
       take_trap(t, pc);
+      if (log_commits_enabled && !in_cosim) {
+      write(2,&pc,sizeof(reg_t));
+        // fwrite(&pc,sizeof(reg_t),1,stderr);
+
+      }
       n = instret;
 
       // If critical error then enter debug mode critical error trigger enabled
@@ -391,6 +413,13 @@ void processor_t::step(size_t n)
     }
     catch (wait_for_interrupt_t &t)
     {
+      if (after_debug_mode_wfi_check) // wfi is thrown by instruction. i.e. new instruction is executed.
+      {
+        if (log_commits_enabled && !in_cosim) {
+          write(2,&pc,sizeof(reg_t));
+          // fwrite(&pc,sizeof(reg_t),1,stderr);
+        }
+      }
       // Return to the outer simulation loop, which gives other devices/harts a
       // chance to generate interrupts.
       //
