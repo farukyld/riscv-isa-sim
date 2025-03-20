@@ -82,15 +82,16 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
   bool show_vec = false;
 
   for (auto item : reg) {
-    if (item.first == 0)
+    auto first = std::get<0>(item);
+    if (first == 0)
       continue;
-
+    auto second = std::get<1>(item);
     char prefix = ' ';
     int size;
-    int rd = item.first >> 4;
+    int rd = first >> 4;
     bool is_vec = false;
     bool is_vreg = false;
-    switch (item.first & 0xf) {
+    switch (first & 0xf) {
     case 0:
       size = xlen;
       prefix = 'x';
@@ -133,7 +134,7 @@ static void commit_log_print_insn(processor_t *p, reg_t pc, insn_t insn)
       if (is_vreg)
         commit_log_print_value(log_file, size, &p->VU.elt<uint8_t>(rd, 0));
       else
-        commit_log_print_value(log_file, size, item.second.v);
+        commit_log_print_value(log_file, size, second.v);
     }
   }
 

@@ -62,7 +62,7 @@ struct insn_desc_t
 };
 
 // regnum, data
-typedef std::map<reg_t, freg_t> commit_log_reg_t;
+typedef std::vector<std::tuple<reg_t, freg_t>> commit_log_reg_t;
 
 // addr, paddr, value, size
 typedef std::vector<std::tuple<reg_t, reg_t, uint64_t, uint8_t>> commit_log_mem_t;

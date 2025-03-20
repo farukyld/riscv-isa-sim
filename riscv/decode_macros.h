@@ -33,15 +33,15 @@
 #define WRITE_REG(reg, value) ({ \
     CHECK_REG(reg); \
     reg_t wdata = (value); /* value may have side effects */ \
-    if (DECODE_MACRO_USAGE_LOGGED) STATE.log_reg_write[(reg) << 4] = {wdata, 0}; \
+    if (DECODE_MACRO_USAGE_LOGGED) STATE.log_reg_write.push_back(std::make_tuple((reg) << 4, {wdata, 0})); \
     STATE.XPR.write(reg, wdata); \
   })
 #define WRITE_FREG(reg, value) ({ \
     freg_t wdata = freg(value); /* value may have side effects */ \
-    if (DECODE_MACRO_USAGE_LOGGED) STATE.log_reg_write[((reg) << 4) | 1] = wdata; \
+    if (DECODE_MACRO_USAGE_LOGGED) STATE.log_reg_write.push_back(std::make_tuple((reg) << 4 | 1, wdata)); \
     DO_WRITE_FREG(reg, wdata); \
   })
-#define WRITE_VSTATUS STATE.log_reg_write[3] = {0, 0};
+#define WRITE_VSTATUS STATE.log_reg_write.push_back(std::make_tuple(3,{0, 0}));
 
 /* the value parameter needs to be evaluated before writing to the registers */
 #define WRITE_REG_PAIR(reg, value) \

@@ -42,8 +42,8 @@ class rocc_t : public extension_t
     reg_t xs1 = u.r.xs1 ? state->XPR[insn.rs1()] : -1;        \
     reg_t xs2 = u.r.xs2 ? state->XPR[insn.rs2()] : -1;        \
     reg_t xd = rocc->method_name(u.r, xs1, xs2);              \
-    if (u.r.xd) {                                                 \
-      state->log_reg_write[insn.rd() << 4] = {xd, 0};             \
+    if (u.r.xd) {                                                \
+      state->log_reg_write.push_back(std::make_tuple(insn.rd() << 4, {xd, 0}));             \
       state->XPR.write(insn.rd(), xd);                            \
     }                                                             \
     return pc+4; \
