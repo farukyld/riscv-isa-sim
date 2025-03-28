@@ -233,7 +233,7 @@ public:
 
     auto base = transformed_addr & ~(blocksz - 1);
     for (size_t offset = 0; offset < blocksz; offset += 1) {
-      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
+      // check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
       store<uint8_t>(base + offset, 0);
     }
   }
@@ -244,7 +244,7 @@ public:
 
     auto base = transformed_addr & ~(blocksz - 1);
     for (size_t offset = 0; offset < blocksz; offset += 1)
-      check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
+      // check_triggers(triggers::OPERATION_STORE, base + offset, false, transformed_addr, std::nullopt);
     convert_load_traps_to_store_traps({
       const reg_t paddr = translate(access_info, 1);
       if (sim->reservable(paddr)) {
