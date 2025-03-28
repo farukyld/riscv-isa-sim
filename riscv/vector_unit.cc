@@ -80,7 +80,7 @@ template<class T> T& vectorUnit_t::elt(reg_t vReg, reg_t n, bool UNUSED is_write
   reg_referenced[vReg] = 1;
 
   if (unlikely(p->get_log_commits_enabled() && is_write))
-    p->get_state()->log_reg_write.push_back(std::make_tuple(((vReg) << 4) | 2, {0, 0}));
+    p->get_state()->log_reg_write.push_back(std::make_tuple(((vReg) << 4) | 2, float128_t{0, 0}));
 
   T *regStart = (T*)((char*)reg_file + vReg * (VLEN >> 3));
   return regStart[n];
@@ -129,7 +129,7 @@ vectorUnit_t::elt_group(reg_t vReg, reg_t n, bool UNUSED is_write) {
       reg_referenced[vidx] = 1;
 
       if (unlikely(p->get_log_commits_enabled() && is_write)) {
-          p->get_state()->log_reg_write.push_back(std::make_tuple((vidx << 4) | 2, {0, 0}));
+          p->get_state()->log_reg_write.push_back(std::make_tuple((vidx << 4) | 2, float128_t{0, 0}));
       }
   }
 
