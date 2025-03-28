@@ -713,7 +713,7 @@ insn_func_t processor_t::decode_insn(insn_t insn)
   }
 
   // return desc->func(xlen, rve, log_commits_enabled);
-  return desc->logged_rv64i;
+  return log_commits_enabled? desc->logged_rv64i: desc->fast_rv64i;
 }
 
 void processor_t::register_insn(insn_desc_t desc, bool is_custom) {
