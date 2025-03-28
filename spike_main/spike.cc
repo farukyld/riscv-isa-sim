@@ -20,6 +20,10 @@
 #include <limits>
 #include <cinttypes>
 #include <sstream>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #include "../VERSION"
 
 static void help(int exit_code = 1)
@@ -35,7 +39,7 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  -g                    Track histogram of PCs\n");
   fprintf(stderr, "  -l                    Generate a log of execution\n");
 #ifdef HAVE_BOOST_ASIO
-  fprintf(stderr, "  -s                    Command I/O via socket (use with -d)\n");
+  fprintf(stderr, "  -s                    Command I/O via socket_enabled (use with -d)\n");
 #endif
   fprintf(stderr, "  -h, --help            Print this help message\n");
   fprintf(stderr, "  --halted              Start halted, allowing a debugger to connect\n");
@@ -337,7 +341,7 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   bool halted = false;
   bool histogram = false;
   bool log = false;
-  bool UNUSED socket = false;  // command line option -s
+  bool UNUSED socket_enabled = false;  // command line option -s
   bool dump_dts = false;
   bool dtb_enabled = true;
   const char* kernel = NULL;
@@ -393,7 +397,7 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   parser.option('g', 0, 0, [&](const char UNUSED *s){histogram = true;});
   parser.option('l', 0, 0, [&](const char UNUSED *s){log = true;});
 #ifdef HAVE_BOOST_ASIO
-  parser.option('s', 0, 0, [&](const char UNUSED *s){socket = true;});
+  parser.option('s', 0, 0, [&](const char UNUSED *s){socket_enabled = true;});
 #endif
   parser.option('p', 0, 1, [&](const char* s){nprocs = atoul_nonzero_safe(s);});
   parser.option('m', 0, 1, [&](const char* s){cfg.mem_layout = parse_mem_layout(s);});
@@ -539,7 +543,7 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
 
   s_ptr = new sim_t(&cfg, halted,
       mems, plugin_device_factories, htif_args, dm_config, log_path, dtb_enabled, dtb_file,
-      socket,
+      socket_enabled,
       cmd_file,
       instructions);
   sim_t &s = *s_ptr;
@@ -572,6 +576,29 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   s.set_debug(debug);
   s.set_cosim(in_cosim);
   s.set_procs_cosim(in_cosim);
+  if (log_commits)
+  {
+    // log commits via unix domain socket
+    int unix_socket_fd = socket(AF_UNIX, SOCK_STREAM,0);
+    if (unix_socket_fd == -1){
+      perror("socket creation failed\n");
+      exit(1);
+    }
+
+    sockaddr_un spike_address;
+    
+    spike_address.sun_family = AF_UNIX;
+    
+    #define SOCK_PATH "/home/faruk/tmp/spike_socket"
+    strncpy(spike_address.sun_path, SOCK_PATH, sizeof(spike_address.sun_path));
+    //                                                               ??????????
+    int connect_stat = connect(unix_socket_fd,(sockaddr*)&spike_address, sizeof(spike_address)); // ??
+    if (connect_stat == -1){
+      perror("Connect failed");
+      close(unix_socket_fd);
+      exit(1);
+    }
+  }
   if (in_cosim)
     log_commits=true;
   s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);

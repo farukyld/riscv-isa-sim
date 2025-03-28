@@ -239,6 +239,13 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   return npc;
 }
 
+static void write_commit_log(processor_t *p, reg_t pc, insn_t insn)
+{
+  // write(2,&pc,8);
+  // uint64_t bits = insn.bits();
+  // write(2,&bits,8);
+}
+
 bool processor_t::slow_path()
 {
   return debug || state.single_step != state.STEP_NONE || state.debug_mode ||
@@ -281,6 +288,8 @@ void processor_t::step(size_t n)
       }
 
     bool after_debug_mode_wfi_check = false;
+    
+    insn_fetch_t* fetch;
 
     try
     {
@@ -322,18 +331,20 @@ void processor_t::step(size_t n)
           after_debug_mode_wfi_check = true; // to check if wfi is thrown by instruction execution or before instruction execution.
 
           in_wfi = false;
-          insn_fetch_t fetch = mmu->load_insn(pc);
+          auto fetch_obj = mmu->load_insn(pc);
+          fetch = &(fetch_obj);
           // if (debug && !state.serialized)
           //   disasm(fetch.insn);
           if (this->get_log_commits_enabled()) {
             commit_log_reset(this);
             commit_log_stash_privilege(this);
           }
-          pc = fetch.func(this, fetch.insn, pc);
+          pc = fetch->func(this, fetch->insn, pc);
           // pc = execute_insn_logged(this, pc, fetch);
           if (pc != PC_SERIALIZE_BEFORE) {
             if (log_commits_enabled && !in_cosim) {
-              write(2,&pc,sizeof(reg_t));
+              write_commit_log(this,pc,fetch->insn);
+              // write(2,&pc,sizeof(reg_t));
               // fwrite(&pc,sizeof(reg_t),1,stderr);
 
               // commit_log_print_insn(p, pc, fetch.insn);
@@ -357,8 +368,8 @@ void processor_t::step(size_t n)
       {
         // Main simulation loop, fast path.
         for (auto ic_entry = _mmu->access_icache(pc); ; ) {
-          auto fetch = ic_entry->data;
-          pc = execute_insn_fast(this, pc, fetch);
+          fetch = &(ic_entry->data); 
+          pc = execute_insn_fast(this, pc, *fetch);
           ic_entry = ic_entry->next;
           if (unlikely(ic_entry->tag != pc))
             break;
@@ -375,7 +386,8 @@ void processor_t::step(size_t n)
     {
       take_trap(t, pc);
       if (log_commits_enabled && !in_cosim) {
-      write(2,&pc,sizeof(reg_t));
+        write_commit_log(this,pc,fetch->insn);
+        // write(2,&pc,sizeof(reg_t));
         // fwrite(&pc,sizeof(reg_t),1,stderr);
 
       }
@@ -417,7 +429,8 @@ void processor_t::step(size_t n)
       if (after_debug_mode_wfi_check) // wfi is thrown by instruction. i.e. new instruction is executed.
       {
         if (log_commits_enabled && !in_cosim) {
-          write(2,&pc,sizeof(reg_t));
+          write_commit_log(this,pc,fetch->insn);
+          // write(2,&pc,sizeof(reg_t));
           // fwrite(&pc,sizeof(reg_t),1,stderr);
         }
       }
