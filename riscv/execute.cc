@@ -239,11 +239,21 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   return npc;
 }
 
+extern int unix_socket_fd;
 static void write_commit_log(processor_t *p, reg_t pc, insn_t insn)
 {
-  // write(2,&pc,8);
-  // uint64_t bits = insn.bits();
-  // write(2,&bits,8);
+  uint64_t bits = insn.bits();
+  reg_t a[4];
+  // send some random bytes. 
+  a[0] = pc;
+  a[1] = bits;
+  a[2] = bits*pc;
+  a[3] = bits+pc;
+  write(unix_socket_fd,&(a[0]),32);
+  // write(2,&(a[0]),32);
+  // send(unix_socket_fd, &(a[0]),8, MSG_MORE);
+  // send(unix_socket_fd, &(a[1]),8, MSG_MORE);
+  // send(unix_socket_fd, &(a[2]),8, 0);
 }
 
 bool processor_t::slow_path()

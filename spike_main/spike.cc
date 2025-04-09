@@ -334,6 +334,7 @@ int main(int argc, char** argv)
   return launch(argc,argv,NULL,false);
 }
 
+int unix_socket_fd;
 
 int launch(int argc, char** argv, char** env, bool in_cosim)
 {
@@ -579,26 +580,32 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   if (log_commits)
   {
     // log commits via unix domain socket
-    int unix_socket_fd = socket(AF_UNIX, SOCK_STREAM,0);
+    unix_socket_fd = socket(AF_UNIX, SOCK_STREAM,0);
     if (unix_socket_fd == -1){
       perror("socket creation failed\n");
       exit(1);
     }
 
-    sockaddr_un spike_address;
+    sockaddr_un spike_sockaddr;
     
-    spike_address.sun_family = AF_UNIX;
+    spike_sockaddr.sun_family = AF_UNIX;
     
     #define SOCK_PATH "/home/faruk/tmp/spike_socket"
-    strncpy(spike_address.sun_path, SOCK_PATH, sizeof(spike_address.sun_path));
+    strncpy(spike_sockaddr.sun_path, SOCK_PATH, sizeof(spike_sockaddr.sun_path));
     //                                                               ??????????
-    int connect_stat = connect(unix_socket_fd,(sockaddr*)&spike_address, sizeof(spike_address)); // ??
+    int connect_stat = connect(unix_socket_fd,(sockaddr*)&spike_sockaddr, sizeof(spike_sockaddr)); // ??
     if (connect_stat == -1){
       perror("Connect failed");
       close(unix_socket_fd);
       exit(1);
     }
+    printf("spike: unix_socket_fd: %d\n"
+           "connect_stat: %d\n",
+           unix_socket_fd, connect_stat);
+    printf("sending a single byte via socket\n");
+    write(unix_socket_fd,"1",1);
   }
+
   if (in_cosim)
     log_commits=true;
   s.configure_log(log, log_commits, log_paddr_only, log_vaddr_paddr, log_l_s_mem);
