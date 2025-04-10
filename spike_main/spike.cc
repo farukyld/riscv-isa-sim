@@ -24,6 +24,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <cerrno>
 #include "../VERSION"
 
 static void help(int exit_code = 1)
@@ -334,7 +336,71 @@ int main(int argc, char** argv)
   return launch(argc,argv,NULL,false);
 }
 
-int unix_socket_fd;
+// int unix_socket_fd;
+// #define SOCK_PATH_BASE "/home/faruk/tmp/spike_socket"
+
+// int try_connect()
+// {
+//   for (int i = 0; i < 10; ++i)
+//   {
+//     std::string sock_path = SOCK_PATH_BASE + std::to_string(i);
+
+//     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+//     if (fd == -1)
+//     {
+//       printf("socket creation failed");
+//       continue;
+//     }
+
+//     // Set the socket to non-blocking
+//     int flags = fcntl(fd, F_GETFL, 0);
+//     if (flags == -1)
+//     {
+//       printf("fcntl(F_GETFL) failed");
+//       close(fd);
+//       continue;
+//     }
+//     flags |= O_NONBLOCK; // Set O_NONBLOCK flag
+//     if (fcntl(fd, F_SETFL, flags) == -1)
+//     {
+//       printf("fcntl(F_SETFL) failed");
+//       close(fd);
+//       continue;
+//     }
+
+//     sockaddr_un addr{};
+//     addr.sun_family = AF_UNIX;
+//     std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
+
+//     int stat = connect(fd, (sockaddr *)&addr, sizeof(addr));
+//     if (stat == 0)
+//     {
+//       std::cout << "Connected to: " << sock_path << std::endl;
+//       return fd; // Success
+//     }
+//     else
+//     {
+//       // Check if the error is EINPROGRESS or EAGAIN
+//       if (errno == EINPROGRESS || errno == EAGAIN)
+//       {
+//         // Connection in progress or would block, try the next one
+//         std::cout << "Connection to " << sock_path << " in progress or would block. Trying next socket..." << std::endl;
+//       }
+//       else
+//       {
+//         // Some other error, print it and try the next one
+//         printf("connect failed for %s\n"
+//           "with errno: %d",
+//           sock_path.c_str(), errno); 
+//       }
+//     }
+
+//     close(fd); // If connect failed, close and try next
+//   }
+
+//   std::cout << "No available spike socket to connect to\n";
+//   return -1;
+// }
 
 int launch(int argc, char** argv, char** env, bool in_cosim)
 {
@@ -577,34 +643,14 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
   s.set_debug(debug);
   s.set_cosim(in_cosim);
   s.set_procs_cosim(in_cosim);
-  if (log_commits)
-  {
-    // log commits via unix domain socket
-    unix_socket_fd = socket(AF_UNIX, SOCK_STREAM,0);
-    if (unix_socket_fd == -1){
-      perror("socket creation failed\n");
-      exit(1);
-    }
-
-    sockaddr_un spike_sockaddr;
-    
-    spike_sockaddr.sun_family = AF_UNIX;
-    
-    #define SOCK_PATH "/home/faruk/tmp/spike_socket"
-    strncpy(spike_sockaddr.sun_path, SOCK_PATH, sizeof(spike_sockaddr.sun_path));
-    //                                                               ??????????
-    int connect_stat = connect(unix_socket_fd,(sockaddr*)&spike_sockaddr, sizeof(spike_sockaddr)); // ??
-    if (connect_stat == -1){
-      perror("Connect failed");
-      close(unix_socket_fd);
-      exit(1);
-    }
-    printf("spike: unix_socket_fd: %d\n"
-           "connect_stat: %d\n",
-           unix_socket_fd, connect_stat);
-    printf("sending a single byte via socket\n");
-    write(unix_socket_fd,"1",1);
-  }
+  // if (log_commits)
+  // {
+  //   // log commits via unix domain socket
+  //   unix_socket_fd = try_connect();
+  //   if (unix_socket_fd == -1){
+  //     exit(1);
+  //   }
+  // }
 
   if (in_cosim)
     log_commits=true;

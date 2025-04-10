@@ -249,7 +249,9 @@ static void write_commit_log(processor_t *p, reg_t pc, insn_t insn)
   a[1] = bits;
   a[2] = bits*pc;
   a[3] = bits+pc;
-  write(unix_socket_fd,&(a[0]),32);
+  // fprintf(stderr,"%ld%ld%ld%ld\n",a[0],a[1],a[2],a[3]);
+  write(2,&(a[0]),32);
+  // write(unix_socket_fd,&(a[0]),32);
   // write(2,&(a[0]),32);
   // send(unix_socket_fd, &(a[0]),8, MSG_MORE);
   // send(unix_socket_fd, &(a[1]),8, MSG_MORE);
