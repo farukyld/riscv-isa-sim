@@ -331,9 +331,9 @@ bool htif_t::communication_available()
   return tohost_addr != 0;
 }
 
-bool htif_t::exitcode_not_zero()
+bool htif_t::exitcode_has_value()
 {
-  return exitcode.value_or(0) != 0;
+  return exitcode.has_value();
 }
 
 

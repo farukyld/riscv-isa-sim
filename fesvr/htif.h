@@ -25,7 +25,7 @@ class htif_t : public chunked_memif_t
   virtual void stop();
 
   bool communication_available();
-  bool exitcode_not_zero();
+  bool exitcode_has_value();
   void single_step_with_communication(std::queue<reg_t> *fromhost_queue, std::function<void(reg_t)> fromhost_callback);
   void single_step_without_communication();
   // Cause the simulation to exit with the given exit code.
