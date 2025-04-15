@@ -169,7 +169,7 @@ void processor_t::set_debug(bool value)
   debug = value;
 
   for (auto e : custom_extensions)
-    e.second->set_debug(value);
+    e.second->set_debug(value, *this);
 }
 
 void processor_t::set_cosim(bool value)
@@ -223,7 +223,7 @@ void processor_t::reset()
   for (auto e : custom_extensions) { // reset any extensions
     for (auto &csr: e.second->get_csrs(*this))
       state.add_csr(csr->address, csr);
-    e.second->reset();
+    e.second->reset(*this);
   }
 
   if (sim)
@@ -470,7 +470,10 @@ void processor_t::take_trap(trap_t& t, reg_t epc)
   // An unexpected trap - a trap when SDT is 1 - traps to M-mode
   if ((state.prv <= PRV_S && bit < max_xlen) &&
       (((vsdeleg >> bit) & 1)  || ((hsdeleg >> bit) & 1))) {
-    reg_t s = state.sstatus->read();
+    // Trap is handled in VS-mode or HS-mode. Read the sstatus of the
+    // mode that will handle the trap based on the delegation control
+    reg_t s = (((vsdeleg >> bit) & 1)) ? state.sstatus->read() :
+                                         state.nonvirtual_sstatus->read();
     supv_double_trap = get_field(s, MSTATUS_SDT);
     if (supv_double_trap)
       vsdeleg = hsdeleg = 0;
@@ -726,18 +729,17 @@ void processor_t::build_opcode_map()
 }
 
 void processor_t::register_extension(extension_t *x) {
-  for (auto insn : x->get_instructions())
+  for (auto insn : x->get_instructions(*this))
     register_custom_insn(insn);
   build_opcode_map();
 
-  for (auto disasm_insn : x->get_disasms())
+  for (auto disasm_insn : x->get_disasms(this))
     disassembler->add_insn(disasm_insn);
 
   if (!custom_extensions.insert(std::make_pair(x->name(), x)).second) {
     fprintf(stderr, "extensions must have unique names (got two named \"%s\"!)\n", x->name());
     abort();
   }
-  x->set_processor(this);
 }
 
 void processor_t::register_base_instructions()
@@ -834,6 +836,11 @@ bool processor_t::store(reg_t addr, size_t len, const uint8_t* bytes)
   }
 
   return false;
+}
+
+reg_t processor_t::size()
+{
+  return PGSIZE;
 }
 
 void processor_t::trigger_updated(const std::vector<triggers::trigger_t *> &triggers)
