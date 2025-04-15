@@ -209,18 +209,18 @@ static inline reg_t execute_insn_logged(processor_t* p, reg_t pc, insn_fetch_t f
   try {
     npc = fetch.func(p, fetch.insn, pc);
     if (npc != PC_SERIALIZE_BEFORE) {
-      if (p->get_log_commits_enabled() && !p->in_cosim) {
+      if (p->get_log_commits_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
      }
   } catch (wait_for_interrupt_t &t) {
-      if (p->get_log_commits_enabled() && !p->in_cosim) {
+      if (p->get_log_commits_enabled()) {
         commit_log_print_insn(p, pc, fetch.insn);
       }
       throw;
   } catch(mem_trap_t& t) {
       //handle segfault in midlle of vector load/store
-      if (p->get_log_commits_enabled() && !p->in_cosim) {
+      if (p->get_log_commits_enabled()) {
         for (auto item : p->get_state()->log_reg_write) {
           if ((item.first & 3) == 3) {
             commit_log_print_insn(p, pc, fetch.insn);
@@ -319,7 +319,29 @@ void processor_t::step(size_t n)
           insn_fetch_t fetch = mmu->load_insn(pc);
           if (debug && !state.serialized)
             disasm(fetch.insn);
-          pc = execute_insn_logged(this, pc, fetch);
+          if (in_cosim)
+          {
+            // If the simulation is running in co-simulation (cosim) mode,
+            // where both 'in_cosim' and 'log_commits' are expected to be true,
+            // it should be running on the slow path.
+            //
+            // Clear the log of the previous instruction execution and execute the next one,
+            // but do not print it — the commit logs from the previous instruction
+            // are assumed to be consumed by whoever is using the cosim.
+            //
+            // There's no need to waste time using execute_insn_logged's catch-throw
+            // mechanism just to print and continue.
+            commit_log_reset(this);
+            commit_log_stash_privilege(this);
+            reg_t npc = fetch.func(this, fetch.insn, pc);
+
+            if (histogram_enabled)
+              pc_histogram[pc]++;
+
+            pc = npc;
+          }
+          else
+            pc = execute_insn_logged(this, pc, fetch);
           advance_pc();
 
           // Resume from debug mode in critical error
