@@ -465,13 +465,19 @@ void sim_t::idle()
     static uint64_t max_step_length = in_cosim ? 1 : INTERLEAVE;
     if (instruction_limit.has_value()) {
       if (*instruction_limit < max_step_length) {
+        printf("last step max_step_length: %d\n"
+               "INTERLEAVE: %d\n"
+               "", max_step_length, INTERLEAVE);
         // Final step.
         step(*instruction_limit);
+        printf("htif should_exit: %d\n", htif_t::should_exit());
         htif_exit(0);
+        printf("htif should_exit: %d\n", htif_t::should_exit());
         *instruction_limit = 0;
         return;
       }
       *instruction_limit -= max_step_length;
+      printf("instruction_limit: %d\n", *instruction_limit);
     }
     step(max_step_length);
   }
