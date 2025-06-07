@@ -475,6 +475,7 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
         min_blocksz, max_blocksz);
       exit(-1);
     }
+    cfg.cache_blocksz = blocksz;
   });
   parser.option(0, "instructions", 1, [&](const char* s){
     instructions = strtoull(s, 0, 0);
@@ -566,7 +567,6 @@ int launch(int argc, char** argv, char** env, bool in_cosim)
     if (dc) s.get_core(i)->get_mmu()->register_memtracer(&*dc);
     for (auto e : extensions)
       s.get_core(i)->register_extension(e());
-    s.get_core(i)->get_mmu()->set_cache_blocksz(blocksz);
   }
 
   s.set_debug(debug);

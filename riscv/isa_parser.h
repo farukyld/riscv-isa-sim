@@ -40,6 +40,7 @@ typedef enum {
   EXT_SMRNMI,
   EXT_SSCOFPMF,
   EXT_SVADU,
+  EXT_SVADE,
   EXT_SVNAPOT,
   EXT_SVPBMT,
   EXT_SVINVAL,
@@ -75,6 +76,8 @@ typedef enum {
   EXT_INTERNAL_ZFH_MOVE,
   EXT_SMCSRIND,
   EXT_SSCSRIND,
+  EXT_SMCDELEG,
+  EXT_SSCCFG,
   EXT_SMCNTRPMF,
   EXT_ZIMOP,
   EXT_ZCMOP,
@@ -87,6 +90,8 @@ typedef enum {
   EXT_SMMPM,
   EXT_SMNPM,
   EXT_SSNPM,
+  EXT_SMAIA,
+  EXT_SSAIA,
   NUM_ISA_EXTENSIONS
 } isa_extension_t;
 
