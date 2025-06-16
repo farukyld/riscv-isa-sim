@@ -20,21 +20,6 @@
 const reg_t PGSIZE = 1 << PGSHIFT;
 #define MAX_PADDR_BITS 64
 
-// observability hooks for load, store and fetch
-// intentionally empty not to cause runtime overhead
-// can be redefined if needed 
-#ifndef MMU_OBSERVE_FETCH
-#define MMU_OBSERVE_FETCH(addr, insn, length)
-#endif
-
-#ifndef MMU_OBSERVE_LOAD
-#define MMU_OBSERVE_LOAD(addr, data, length)
-#endif
-
-#ifndef MMU_OBSERVE_STORE
-#define MMU_OBSERVE_STORE(addr, data, length)
-#endif
-
 struct insn_fetch_t
 {
   insn_func_t func;
@@ -105,7 +90,11 @@ public:
       load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags);
     }
 
-    MMU_OBSERVE_LOAD(addr,from_target(res),sizeof(T));
+    if (unlikely(proc && proc->get_log_commits_enabled()))
+    {
+      auto [_1,_2,paddr] =  access_tlb(tlb_load, addr);
+      proc->state.log_mem_read.push_back(std::make_tuple(addr,paddr, 0, sizeof(T)));
+    }
 
     return from_target(res);
   }
@@ -135,7 +124,6 @@ public:
 
   template<typename T>
   void ALWAYS_INLINE store(reg_t addr, T val, xlate_flags_t xlate_flags = {}) {
-    MMU_OBSERVE_STORE(addr, val, sizeof(T));
     bool aligned = (addr & (sizeof(T) - 1)) == 0;
     auto [tlb_hit, host_addr, _] = access_tlb(tlb_store, addr);
 
@@ -145,6 +133,12 @@ public:
       target_endian<T> target_val = to_target(val);
       mem_access_info_t access_info = generate_access_info(addr, STORE, xlate_flags);
       store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false);
+    }
+
+    if (unlikely(proc && proc->get_log_commits_enabled()))
+    {
+      auto [_1,_2,paddr] =  access_tlb(tlb_store, addr);  
+      proc->state.log_mem_write.push_back(std::make_tuple(addr,paddr, val, sizeof(T)));
     }
   }
 
@@ -343,7 +337,6 @@ public:
         tracer.trace(paddr, paddr + length, FETCH);
       }
     }
-    MMU_OBSERVE_FETCH(addr, insn, length);
     return entry;
   }
 
@@ -351,7 +344,6 @@ public:
   {
     icache_entry_t* entry = &icache[icache_index(addr)];
     if (likely(entry->tag == addr)){
-      MMU_OBSERVE_FETCH(addr, entry->data.insn, insn_length(entry->data.insn.bits()));
       return entry;
     }
     return refill_icache(addr, entry);
