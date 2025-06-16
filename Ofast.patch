@@ -1,0 +1,49 @@
+diff --git a/Makefile.in b/Makefile.in
+index 66d087b0..19a872d3 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -93,7 +93,7 @@ VPATH := $(addprefix $(src_dir)/, $(sprojs_enabled))
+ # These all appear on the command line, from lowest precedence to
+ # highest.
+ 
+-default-CFLAGS   := -DPREFIX=\"$(prefix)\" -Wall -Wno-nonportable-include-path -g -O2 -fPIC
++default-CFLAGS   := -DPREFIX=\"$(prefix)\" -Wall -Wno-nonportable-include-path -g -Ofast -fPIC
+ default-CXXFLAGS := $(default-CFLAGS) -std=c++2a
+ 
+ mcppbs-CPPFLAGS := @CPPFLAGS@
+diff --git a/configure b/configure
+index 7c10ebdf..d8ef87da 100755
+--- a/configure
++++ b/configure
+@@ -4084,13 +4084,13 @@ if test $ac_test_CFLAGS; then
+   CFLAGS=$ac_save_CFLAGS
+ elif test $ac_cv_prog_cc_g = yes; then
+   if test "$GCC" = yes; then
+-    CFLAGS="-g -O2"
++    CFLAGS="-g -Ofast"
+   else
+     CFLAGS="-g"
+   fi
+ else
+   if test "$GCC" = yes; then
+-    CFLAGS="-O2"
++    CFLAGS="-Ofast"
+   else
+     CFLAGS=
+   fi
+@@ -4521,13 +4521,13 @@ if test $ac_test_CXXFLAGS; then
+   CXXFLAGS=$ac_save_CXXFLAGS
+ elif test $ac_cv_prog_cxx_g = yes; then
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-g -O2"
++    CXXFLAGS="-g -Ofast"
+   else
+     CXXFLAGS="-g"
+   fi
+ else
+   if test "$GXX" = yes; then
+-    CXXFLAGS="-O2"
++    CXXFLAGS="-Ofast"
+   else
+     CXXFLAGS=
+   fi
