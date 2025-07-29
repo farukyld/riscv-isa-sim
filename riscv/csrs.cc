@@ -315,30 +315,30 @@ bool mseccfg_csr_t::get_sseed() const noexcept {
 }
 
 bool mseccfg_csr_t::unlogged_write(const reg_t val) noexcept {
-  if (proc->n_pmp == 0)
-    return false;
-
-  // pmpcfg.L is 1 in any rule or entry (including disabled entries)
-  const bool pmplock_recorded = std::any_of(state->pmpaddr, state->pmpaddr + proc->n_pmp,
-          [](const pmpaddr_csr_t_p & c) { return c->is_locked(); } );
   reg_t new_val = read();
 
-  // When RLB is 0 and pmplock_recorded, RLB is locked to 0.
-  // Otherwise set the RLB bit according val
-  if (!(pmplock_recorded && (read() & MSECCFG_RLB) == 0)) {
-    new_val &= ~MSECCFG_RLB;
-    new_val |= (val & MSECCFG_RLB);
-  }
+  if (proc->n_pmp != 0) {
+    // pmpcfg.L is 1 in any rule or entry (including disabled entries)
+    const bool pmplock_recorded = std::any_of(state->pmpaddr, state->pmpaddr + proc->n_pmp,
+        [](const pmpaddr_csr_t_p & c) { return c->is_locked(); } );
 
-  new_val |= (val & MSECCFG_MMWP);  //MMWP is sticky
-  new_val |= (val & MSECCFG_MML);   //MML is sticky
+    // When RLB is 0 and pmplock_recorded, RLB is locked to 0.
+    // Otherwise set the RLB bit according val
+    if (!(pmplock_recorded && (read() & MSECCFG_RLB) == 0)) {
+      new_val &= ~MSECCFG_RLB;
+      new_val |= (val & MSECCFG_RLB);
+    }
+
+    new_val |= (val & MSECCFG_MMWP);  //MMWP is sticky
+    new_val |= (val & MSECCFG_MML);   //MML is sticky
+
+    proc->get_mmu()->flush_tlb();
+  }
 
   if (proc->extension_enabled(EXT_ZKR)) {
     uint64_t mask = MSECCFG_USEED | MSECCFG_SSEED;
     new_val = (new_val & ~mask) | (val & mask);
   }
-
-  proc->get_mmu()->flush_tlb();
 
   if (proc->extension_enabled(EXT_ZICFILP)) {
     new_val &= ~MSECCFG_MLPE;
@@ -890,9 +890,11 @@ mip_proxy_csr_t::mip_proxy_csr_t(processor_t* const proc, const reg_t addr, gene
 
 void mip_proxy_csr_t::verify_permissions(insn_t insn, bool write) const {
   csr_t::verify_permissions(insn, write);
-  if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) &&
-      proc->extension_enabled('S') && state->v)
-    throw trap_virtual_instruction(insn.bits()); // VS-mode attempts to access sip when hvictl.VTI=1
+  if (proc->extension_enabled_const(EXT_SSAIA) && proc->extension_enabled('H')) {
+    if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) &&
+        proc->extension_enabled('S') && state->v)
+      throw trap_virtual_instruction(insn.bits()); // VS-mode attempts to access sip when hvictl.VTI=1
+  }
 }
 
 reg_t mip_proxy_csr_t::read() const noexcept {
@@ -912,9 +914,11 @@ mie_proxy_csr_t::mie_proxy_csr_t(processor_t* const proc, const reg_t addr, gene
 
 void mie_proxy_csr_t::verify_permissions(insn_t insn, bool write) const {
   csr_t::verify_permissions(insn, write);
-  if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) &&
-      proc->extension_enabled('S') && state->v)
-    throw trap_virtual_instruction(insn.bits()); // VS-mode attempts to access sie when hvictl.VTI=1
+  if (proc->extension_enabled_const(EXT_SSAIA) && proc->extension_enabled('H')) {
+    if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) &&
+        proc->extension_enabled('S') && state->v)
+      throw trap_virtual_instruction(insn.bits()); // VS-mode attempts to access sie when hvictl.VTI=1
+  }
 }
 
 reg_t mie_proxy_csr_t::read() const noexcept {
@@ -1417,6 +1421,7 @@ dcsr_csr_t::dcsr_csr_t(processor_t* const proc, const reg_t addr):
   ebreakvs(false),
   ebreakvu(false),
   v(false),
+  mprven(false),
   cause(0),
   ext_cause(0),
   cetrig(0),
@@ -1446,6 +1451,7 @@ reg_t dcsr_csr_t::read() const noexcept {
   result = set_field(result, DCSR_STEP, step);
   result = set_field(result, DCSR_PRV, prv);
   result = set_field(result, CSR_DCSR_V, v);
+  result = set_field(result, DCSR_MPRVEN, mprven);
   result = set_field(result, DCSR_PELP, pelp);
   return result;
 }
@@ -1460,6 +1466,7 @@ bool dcsr_csr_t::unlogged_write(const reg_t val) noexcept {
   ebreakvs = proc->extension_enabled('H') ? get_field(val, CSR_DCSR_EBREAKVS) : false;
   ebreakvu = proc->extension_enabled('H') ? get_field(val, CSR_DCSR_EBREAKVU) : false;
   v = proc->extension_enabled('H') ? get_field(val, CSR_DCSR_V) : false;
+  mprven = get_field(val, CSR_DCSR_MPRVEN);
   pelp = proc->extension_enabled(EXT_ZICFILP) ?
          static_cast<elp_t>(get_field(val, DCSR_PELP)) : elp_t::NO_LP_EXPECTED;
   cetrig = proc->extension_enabled(EXT_SMDBLTRP) ? get_field(val, DCSR_CETRIG) : false;
@@ -1731,8 +1738,10 @@ void stimecmp_csr_t::verify_permissions(insn_t insn, bool write) const {
 
   basic_csr_t::verify_permissions(insn, write);
 
-  if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) && state->v && write)
-    throw trap_virtual_instruction(insn.bits());
+  if (proc->extension_enabled_const(EXT_SSAIA) && proc->extension_enabled('H')) {
+    if ((state->csrmap[CSR_HVICTL]->read() & HVICTL_VTI) && state->v && write)
+      throw trap_virtual_instruction(insn.bits());
+  }
 }
 
 virtualized_with_special_permission_csr_t::virtualized_with_special_permission_csr_t(processor_t* const proc, csr_t_p orig, csr_t_p virt):
