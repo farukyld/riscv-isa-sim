@@ -58,6 +58,7 @@ public:
   }
   const char* get_dts() { return dts.c_str(); }
   processor_t* get_core(size_t i) { return procs.at(i); }
+  size_t get_current_proc_idx() { return current_proc; }
   abstract_interrupt_controller_t* get_intctrl() const { assert(plic.get()); return plic.get(); }
   virtual const cfg_t &get_cfg() const override { return *cfg; }
 
